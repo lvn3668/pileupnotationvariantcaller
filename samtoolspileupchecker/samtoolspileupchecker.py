@@ -41,6 +41,7 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
             # min depth calculated for reads
             # QNAME, FLAG, RNAME, POS, MAPQ (displayed numerically), RNEXT, PNEXT.
             # Sanity check on samtools mpileup output file
+
             (chromosomenumber, positiononchromosome, referencebase, numberofreads, readstrings, qname, flag, rname, pos,
              cigar, mapq, rnext, pnext, tlen, SEQ, QUAL) = string.split('\t')
             if (chromosomenumber not in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
@@ -56,11 +57,13 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
                 return False, Exception("Invalid reference base")
             elif numberofreads < 0 or min_depth < 0 or numberofreads < min_depth:
                 return False, Exception("Insufficient read depth; Minimum specified read depth ",min_depth)
+            elif numberofreads != len(readstrings):
+                return False, Exception("Number of reads does not match pileup reads ", numberofreads, " ", len(readstrings))
             elif set(readstrings.split()).difference(pileupnotation.split()) > 0:
                 return False, Exception("read base strings contain invalid character")
             elif qname is None or not re.match(qnamepattern):
                 return False, Exception("Query template Name absent; bam file in invalid format")
-            elif flag is None or flag < 0 or flag > 2 ^ 16 - 1:
+            elif flag is None or flag not in [0, 2 ^ 16 - 1]:
                 return False, Exception("Bitwise Flag absent or not matching SAM Specifications")
             elif rname is None:
                 return False, Exception("reference template name absent")
