@@ -6,7 +6,7 @@ import re
 from typing import TextIO
 
 
-def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str):
+def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str) -> object:
     """
     :param dnabasesfilename:
     :type refgenomefilename: object
@@ -15,7 +15,6 @@ def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str):
         global dnabases
         dnabases = []
         reference: str = ""
-        print(refgenomefilename)
         # check if size of file is 0
         if os.stat(''.join(dnabasesfilename)).st_size == 0:
             print('File is empty')
@@ -32,22 +31,19 @@ def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str):
                 if len(line.strip()) > 1:
                     numberoflinesinfile.remove(line)
                     raise Exception("DNA Bases file not in right format; One base per line")
-            pattern = ''.join(numberoflinesinfile)
-            print(pattern)
+
         dnabasesfilehandle.close()
         if os.stat(refgenomefilename).st_size == 0:
-            print('File is empty')
+            print(refgenomefilename, ' File is empty')
             raise Exception(refgenomefilename, ' file is empty')
         else:
-            print('File is not empty')
+            print(refgenomefilename, ' File is not empty')
             refgenomefilehandle: TextIO = open(refgenomefilename, "r", encoding="utf-8")
             lines: list[str] = refgenomefilehandle.readlines()
-            print("Number of lines ", len(lines))
+
             for line in lines:
-                if line.startswith('>'):
+                if line.startswith('>') or re.search(r'[ATGCUatgcu]', line.strip()):
                     continue
-                elif re.search(r'[ATGCUatgcu]', line.strip()):
-                    print("Valid : %r" % (line.strip(),))
                 else:
                     lines.remove(line.strip())
             reference = ''.join(lines).replace('\n', '')

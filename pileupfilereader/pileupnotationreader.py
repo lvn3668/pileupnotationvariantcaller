@@ -38,58 +38,49 @@ import re
 
 # Author: Lalitha Viswanathan
 # Pileup read notation variant caller
-from re import Pattern
-from typing import TextIO
+from typing import TextIO, Pattern
 
 
-def pileupnotationreader(pileupnotationfilename: str, pileupreadsfilename: str):
+def pileupnotationreader(pileupnotationfilename: str, pileupreadsfilename: str) -> list[str]:
     """
     :param pileupreadsfilename:
     :param pileupnotationfilename:
     """
     try:
-        print("inside pileup notaton reader")
-        pileupreads: str
-        print(pileupreadsfilename)
-        print(pileupnotationfilename)
         # check if size of file is 0
         if os.stat(''.join(pileupnotationfilename)).st_size == 0:
-            print('File is empty')
+            print(pileupnotationfilename, ' File is empty')
             raise Exception(pileupnotationfilename, ' file is empty')
         else:
-            print('File is not empty')
             pileupnotationfilehandle: TextIO = open(''.join(pileupnotationfilename), 'r')
-            Lines = pileupnotationfilehandle.readlines()
-            for line in Lines:
+            pileupreads = pileupnotationfilehandle.readlines()
+            for line in pileupreads:
+                # Each line contains one valid character and a newline
                 if len(line) > 2:
-                    Lines.remove(line)
+                    pileupreads.remove(line)
                     raise Exception("Pileup format file not in right format; One base per line")
                 else:
-                    Lines[Lines.index(line)] = line.strip()
-            pattern = ''.join(Lines)
-            print(pattern)
+                    pileupreads[pileupreads.index(line)] = line.strip()
+            pileupnotationpattern: str = ''.join(pileupreads)
 
-        print(pileupreadsfilename)
         if os.stat(''.join(pileupreadsfilename)).st_size == 0:
-            print('File is empty')
+            print(pileupreadsfilename, ' file is empty')
             raise Exception(pileupreadsfilename, ' file is empty')
         else:
-            print('File is not empty')
+            print(pileupreadsfilename, ' file is not empty')
             # Check if mpileup file is correctly formatted or not
 
             pileupreadsfilehandle: TextIO = open(''.join(pileupreadsfilename), 'r')
-            Lines = pileupreadsfilehandle.readlines()
-            for line in Lines:
+            pileupreads = pileupreadsfilehandle.readlines()
+            for line in pileupreads:
                 if line.startswith('>'):
                     continue
                 elif len(line) > 1:
-                    regexpattern = re.compile("[" + pattern + "]+")
+                    regexpattern: Pattern[str] = re.compile("[" + pileupnotationpattern + "]+")
                     if regexpattern.match(line.strip()):
-                        print("valid : %r" % (line,))
-                        Lines[Lines.index(line)] = line.strip()
+                        pileupreads[pileupreads.index(line)] = line.strip()
                     else:
-                        print("Invalid   : %r" % (line.strip(),))
-                        Lines.remove(line)
+                        pileupreads.remove(line)
                         raise Exception("Invalid bases in pileup notation")
 
         pileupreadsfilehandle.close()

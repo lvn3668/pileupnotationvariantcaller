@@ -8,8 +8,8 @@ import numpy as np
 import pileupfilereader.pileupnotationreader as pileup
 import referencegenomecheck.referencegenomecheck as refgenome
 import variantcaller.variantcaller as vc
-from chromosomelengthreader import *
-# equqence id , 1 based coordinate, reference base, number of reads covering that base,
+
+# sequqence id , 1 based coordinate, reference base, number of reads covering that base,
 # , / . matching positive / negative strand
 #  ATGCN mismatch on fwd strand
 # atgcn mismatch on rev strand
@@ -58,9 +58,6 @@ test_pileup = ['....,...,,,,.,...,',
                '.cc',
                'aA.,,A.,...,a.,Aa...,',
                ]
-
-
-
 
 
 def call_variants(pileupreads: list[str], min_depth: int) -> str:
@@ -135,19 +132,19 @@ def call_variants(pileupreads: list[str], min_depth: int) -> str:
                         readstrands[chromosomenumber][readnumber][positiononchromosome] = 'start'
 
             readnumber = readnumber + 1
-                uniquebases, countsofuniquebases = np.unique(reads, return_counts=True)
-                frequencies = np.asarray((uniquebases, countsofuniquebases)).T
+            uniquebases, countsofuniquebases = np.unique(reads, return_counts=True)
+            frequencies = np.asarray((uniquebases, countsofuniquebases)).T
 
-                if vc.checkforreferenceallelecall(uniquebases):
-                    call_set.append("ref")
-                elif vc.checkforaltallelecallinpileup(uniquebases):
-                    call_set.append("alt")
-                elif vc.checkforalthomozygouscall(uniquebases, frequencies):
-                    call_set.append("[ACGT]hom")
-                elif vc.checkifATGCHeterozygous(uniquebases, frequencies):
-                    call_set.append("[ACGT]het")
-                elif vc.checkifATGClow(uniquebases, frequencies):
-                    call_set.append("[ACGT]low")
+            if vc.checkforreferenceallelecall(uniquebases):
+                call_set.append("ref")
+            elif vc.checkforaltallelecallinpileup(uniquebases):
+                call_set.append("alt")
+            elif vc.checkforalthomozygouscall(uniquebases, frequencies):
+                call_set.append("[ACGT]hom")
+            elif vc.checkifATGCHeterozygous(uniquebases, frequencies):
+                call_set.append("[ACGT]het")
+            elif vc.checkifATGClow(uniquebases, frequencies):
+                call_set.append("[ACGT]low")
             else:
                 call_set.append("nocall")
         return call_set
@@ -186,7 +183,6 @@ if __name__ == '__main__':
         print(args.referencefastafile)
         print(args.assemblymetadata)
         # Keep this line:
-        #print(args.accumulate(args.integers))
         (Chrlengthshash, organism, assembly) = chromosomelengthreader.readchromosomelengths(args.assemblymetadata)
         reference = refgenome.referencegenomeparser(args.referencefastafile, args.dnabasesfilename)
         pileupreads: list[str] = pileup.pileupnotationreader(args.pileupformat, args.pileupreads)
