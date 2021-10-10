@@ -92,6 +92,7 @@ def call_variants(pileupreads: list[str], min_depth: int) -> str:
         readstrands = {}
         referenceskip = {}
         deletedbases = {}
+        readquality = {}
         for stringofallreadsmappingtothatpositiononreference in pileupreads:
             chromosomenumber, positiononchromosome, referencebase, numberofreads, readstrings, qname, flag, rname, pos,
             cigar, mapq, rnext, pnext, tlen, SEQ, QUAL = stringofallreadsmappingtothatpositiononreference.split('\s+')
@@ -132,6 +133,9 @@ def call_variants(pileupreads: list[str], min_depth: int) -> str:
                         deletedbases[chromosomenumber][positiononchromosome][readnumber] = 1
                     elif readstrings[readnumber] == '^':
                         readstrands[chromosomenumber][positiononchromosome][readnumber] = 'start'
+                        readquality[chromosomenumber][positiononchromosome][readnumber] = ord(readstrings[readnumber+1])-33
+                        # Move forward twice because start of read and its mapping quality has been parsed
+                        readnumber = readnumber+1
 
             readnumber = readnumber + 1
             uniquebases, countsofuniquebases = np.unique(reads, return_counts=True)
