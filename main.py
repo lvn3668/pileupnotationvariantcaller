@@ -4,6 +4,8 @@
 # from typing import List
 
 import argparse
+from typing import Dict, Any
+
 import numpy as np
 import pileupfilereader.pileupnotationreader as pileup
 import referencegenomecheck.referencegenomecheck as refgenome
@@ -70,66 +72,66 @@ def call_variants(pileupreads: list[str], min_depth: int) -> str:
     # TODO: Make a variant call at each position on ref, using the pileupreads
     try:
         call_set: list[str] = []
-        chromosomenumber: str
-        positiononchromosome: int
-        referencebase: str
-        numberofreads: int
-        readstrings: str
-        qname: str
-        flag: str
-        rname: str
-        pos: int
-        cigar: str
-        mapq: str
-        rnext: str
-        pnext: str
-        tlen: str
+        chromosomenumber: str = None
+        positiononchromosome: int = None
+        referencebase: str = None
+        numberofreads: int = None
+        readstrings: str = None
+        qname: str = None
+        flag: str = None
+        rname: str = None
+        pos: int = None
+        cigar: str = None
+        mapq: str = None
+        rnext: str = None
+        pnext: str = None
+        tlen: str = None
         SEQ: str
         QUAL: str
-        readlengths = {}
+        readlengths: dict[Any, Any] = {}
         readstrands = {}
         referenceskip = {}
         deletedbases = {}
         for stringofallreadsmappingtothatpositiononreference in pileupreads:
             chromosomenumber, positiononchromosome, referencebase, numberofreads, readstrings, qname, flag, rname, pos,
             cigar, mapq, rnext, pnext, tlen, SEQ, QUAL = stringofallreadsmappingtothatpositiononreference.split('\s+')
-            if len(stringofallreadsmappingtothatpositiononreference) > min_depth:
-                readnumber = 0
-                reads = np.ones(len(stringofallreadsmappingtothatpositiononreference))
+            if len(readstrings) > min_depth:
+                readnumber: int = 0
+                reads = np.ones(len(readstrings))
                 # readstrings
                 # after caret, check if strand is given or ascii encoded mapping quality
                 # if '+' isfollowed by number it is insertion of that many bases
                 #
-                while readnumber < len(stringofallreadsmappingtothatpositiononreference):
+                while readnumber < len(readstrings):
                     # reference match on fwd strand (0)
-                    if stringofallreadsmappingtothatpositiononreference[readnumber] == ',':
-                        reads[chromosomenumber][readnumber] = 0
+                    if readstrings[readnumber] == ',':
+                        reads[chromosomenumber][positiononchromosome][readnumber] = 0
                     # reference match on reverse strand (1)
-                    elif stringofallreadsmappingtothatpositiononreference[readnumber] == '.':
-                        reads[chromosomenumber][readnumber] = 1
+                    elif readstrings[readnumber] == '.':
+                        reads[chromosomenumber][positiononchromosome][readnumber] = 1
                     # Mismatch on FWD strand (2)
-                    elif stringofallreadsmappingtothatpositiononreference[readnumber] in ['A', 'T', 'G', 'C']:
-                        reads[chromosomenumber][readnumber] = 2
-                    elif stringofallreadsmappingtothatpositiononreference[readnumber] in ['a', 't', 'g', 'c']:
-                        reads[chromosomenumber][readnumber] = 3
+                    elif readstrings[readnumber] in ['A', 'T', 'G', 'C']:
+                        reads[chromosomenumber][positiononchromosome][readnumber] = 2
+                    elif readstrings[readnumber] in ['a', 't', 'g', 'c']:
+                        reads[chromosomenumber][positiononchromosome][readnumber] = 3
                     # reference skip due to CIGAR string on forward strand
-                    elif stringofallreadsmappingtothatpositiononreference[readnumber] == '>':
-                        referenceskip[chromosomenumber][readnumber][positiononchromosome] = 0
+                    elif readstrings[readnumber] == '>':
+                        referenceskip[chromosomenumber][positiononchromosome][readnumber] = 0
                     # reference skip due to CIGAR string on reverse strand
-                    elif stringofallreadsmappingtothatpositiononreference[readnumber] == '<':
-                        referenceskip[chromosomelengthreader][readnumber][positiononchromosome] = 1
+                    elif readstrings[readnumber] == '<':
+                        referenceskip[chromosomelengthreader][positiononchromosome][readnumber] = 1
                     # read stops at this position
                     # 1 based indexing
                     # & , %33 (????)
-                    elif stringofallreadsmappingtothatpositiononreference[readnumber] == '$':
-                        readlengths[chromosomenumber][readnumber][positiononchromosome] = 'end'
+                    elif readstrings[readnumber] == '$':
+                        readlengths[chromosomenumber][positiononchromosome][readnumber] = positiononchromosome
                         # deleted bases on fwd strand (also on reverse unless flag specified in samtools call)
-                    elif stringofallreadsmappingtothatpositiononreference[readnumber] == '*':
-                        deletedbases[chromosomenumber][readnumber][positiononchromosome] = 0
-                    elif stringofallreadsmappingtothatpositiononreference[readnumber] == '#':
-                        deletedbases[chromosomenumber][readnumber][positiononchromosome] = 1
-                    elif stringofallreadsmappingtothatpositiononreference[readnumber] == '^':
-                        readstrands[chromosomenumber][readnumber][positiononchromosome] = 'start'
+                    elif readstrings[readnumber] == '*':
+                        deletedbases[chromosomenumber][positiononchromosome][readnumber] = 0
+                    elif readstrings[readnumber] == '#':
+                        deletedbases[chromosomenumber][positiononchromosome][readnumber] = 1
+                    elif readstrings[readnumber] == '^':
+                        readstrands[chromosomenumber][positiononchromosome][readnumber] = 'start'
 
             readnumber = readnumber + 1
             uniquebases, countsofuniquebases = np.unique(reads, return_counts=True)
