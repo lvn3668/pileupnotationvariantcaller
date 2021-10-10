@@ -95,7 +95,7 @@ def call_variants(pileupreads: list[str], min_depth: int) -> str:
         readquality = {}
         for stringofallreadsmappingtothatpositiononreference in pileupreads:
             chromosomenumber, positiononchromosome, referencebase, numberofreads, readstrings, qname, flag, rname, pos,
-            cigar, mapq, rnext, pnext, tlen, SEQ, QUAL = stringofallreadsmappingtothatpositiononreference.split('\s+')
+            cigar, mapq, rnext, pnext, tlen, SEQ, QUAL = stringofallreadsmappingtothatpositiononreference.split('\t')
             if len(readstrings) > min_depth:
                 readnumber: int = 0
                 reads = np.ones(len(readstrings))
