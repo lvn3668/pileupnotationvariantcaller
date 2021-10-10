@@ -2,7 +2,7 @@ import re
 
 
 def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: hash, dnabases: str,
-                            pileupnotation: str) -> tuple[bool, Exception]:
+                            pileupnotation: str) -> Union[tuple[bool, Exception], bool]:
     """
     :type pileupnotation: object
     :param pileupnotation: 
