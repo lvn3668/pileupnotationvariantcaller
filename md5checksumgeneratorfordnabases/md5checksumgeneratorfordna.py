@@ -5,7 +5,14 @@ from random import choice
 # MD5 Checksum function
 # Generates hash of md5 checksums for randomly generated DNA sequences from length 1 through specified length (100000)
 # From SAMTOOLS SEQ header, the MD5 Value is validated as being present / absent in hash
-# If present, valid samtools file else invalid samtools file
+# If present, valid samtools file else invalid samtools file\
+
+# no dehashing to check if md5 dehashed is equivalent to the reference genome fragment for which the read information / alignment information
+# is provided
+
+def isValidMD5(string: str)-> bool:
+    return string.matches("^[a-fA-F0-9]{32}$")
+
 def weightedchoice(items: list[str]) -> object:  # this doesn't require the numbers to add up to 100
     """
 

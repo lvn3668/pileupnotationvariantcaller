@@ -10,6 +10,7 @@ import numpy as np
 import pileupfilereader.pileupnotationreader as pileup
 import referencegenomecheck.referencegenomecheck as refgenome
 import variantcaller.variantcaller as vc
+import md5checksumgeneratorfordnabases as md5
 
 # sequqence id , 1 based coordinate, reference base, number of reads covering that base,
 # , / . matching positive / negative strand
@@ -192,6 +193,9 @@ if __name__ == '__main__':
         (Chrlengthshash, organism, assembly) = chromosomelengthreader.readchromosomelengths(args.assemblymetadata)
         reference = refgenome.referencegenomeparser(args.referencefastafile, args.dnabasesfilename)
         pileupreads: list[str] = pileup.pileupnotationreader(args.pileupformat, args.pileupreads)
+        # find maximum read length and generate md5 checksums till that length
+        maxreadlength = 10000
+        md5checksumhash: dict[str, str] = md5.randomMD5HashForDNAsequencegenerator(maxreadlength)
         #call_set = call_variants(test_pileup, reference, 5)
 
         # TO DO: print the ref positions (1-10), and the variant call at each position
