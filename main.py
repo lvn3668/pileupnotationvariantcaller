@@ -202,10 +202,9 @@ if __name__ == '__main__':
             validityofreferencefile, reference = refgenome.referencegenomeparser(''.join(args.referencefastafile), ''.join(args.dnabasesfilename))
             if validityofreferencefile:
                 print("After reading reference genome")
-                print("Inside md5 generator ", args.maxreadlength[0])
-                md5checksumhash: dict[str, str] = md5.randomMD5HashForDNAsequencegenerator(args.maxreadlength[0])
+                md5.randomMD5HashForDNAsequencegenerator(args.maxreadlength[0], "D:\md5checksum.txt")
 
-            pileupreads: list[str] = pileup.pileupnotationreader(args.pileupformat, args.pileupreads)
+            #pileupreads: list[str] = pileup.pileupnotationreader(args.pileupformat, args.pileupreads)
             # find maximum read length and generate md5 checksums till that length
 
         #call_set = call_variants(test_pileup, reference, 5)
