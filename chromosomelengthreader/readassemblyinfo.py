@@ -3,8 +3,7 @@
 # Used to check validity of samtools mpileup output
 
 import os
-from types import Union
-from typing import TextIO
+from typing import TextIO, Union
 
 
 def readchromosomelengths(filename: str) -> Union[tuple[bool, None, None, None], tuple[bool, str, str, dict[str, str]]]:
@@ -32,11 +31,9 @@ def readchromosomelengths(filename: str) -> Union[tuple[bool, None, None, None],
             # Extract assembly information
             if line.startswith("assembly"):
                 assembly = line.split(':')[1].strip()
-                print(assembly)
             # Extract organism information
             elif line.startswith("organism"):
                 organism = line.split(':')[1].strip()
-                print(organism)
             # Parse chromosome number and length
             elif len(line.strip()) > 1 and line.startswith("chr"):
                 chromosomenumber: str

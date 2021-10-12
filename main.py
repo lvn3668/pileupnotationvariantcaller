@@ -4,13 +4,15 @@
 # from typing import List
 
 import argparse
-from typing import Dict, Any
+from typing import Any
 
 import numpy as np
+
+import md5checksumgeneratorfordnabases.md5checksumgeneratorfordnasequences as md5
 import pileupfilereader.pileupnotationreader as pileup
 import referencegenomecheck.referencegenomecheck as refgenome
 import variantcaller.variantcaller as vc
-import md5checksumgeneratorfordnabases as md5
+import chromosomelengthreader.readassemblyinfo as chrlengthreader
 
 # sequqence id , 1 based coordinate, reference base, number of reads covering that base,
 # , / . matching positive / negative strand
@@ -48,7 +50,6 @@ import md5checksumgeneratorfordnabases as md5
 
 
 # test_ref = 'TTTAGAGCGC'
-from chromosomelengthreader import chromosomelengthreader
 
 test_pileup = ['....,...,,,,.,...,',
                ',..,,,.c..C.,,,',
@@ -185,17 +186,28 @@ if __name__ == '__main__':
         parser.add_argument('--minreaddepth', metavar='minimum read depth', type=int, nargs='+', help='minimum read depth')
         parser.add_argument('--assemblymetadata', metavar='assembly information', type=str, nargs='+',
                             help='assembly information / chromosome lengths')
+        parser.add_argument('--maxreadlength', metavar='max read lengths for md5 checksum generator', type=int, nargs='+', help='maximum read lengths for md5 checksum generator')
         args = parser.parse_args()
-
+        validityofassemblymetadatafile: bool = False
+        validityofreferencefile: bool = False
+        organism: str = None
+        assembly: str = None
+        chrLengthshash: dict[str, str] = None
         print(args.referencefastafile)
         print(args.assemblymetadata)
         # Keep this line:
-        (Chrlengthshash, organism, assembly) = chromosomelengthreader.readchromosomelengths(args.assemblymetadata)
-        reference = refgenome.referencegenomeparser(args.referencefastafile, args.dnabasesfilename)
-        pileupreads: list[str] = pileup.pileupnotationreader(args.pileupformat, args.pileupreads)
-        # find maximum read length and generate md5 checksums till that length
-        maxreadlength = 10000
-        md5checksumhash: dict[str, str] = md5.randomMD5HashForDNAsequencegenerator(maxreadlength)
+        (validityofassemblymetadatafile, chrLengthshash, organism, assembly) = chrlengthreader.readchromosomelengths(''.join(args.assemblymetadata))
+        if validityofassemblymetadatafile:
+            print("Reference file ", ''.join(args.referencefastafile))
+            validityofreferencefile, reference = refgenome.referencegenomeparser(''.join(args.referencefastafile), ''.join(args.dnabasesfilename))
+            if validityofreferencefile:
+                print("After reading reference genome")
+                print("Inside md5 generator ", args.maxreadlength[0])
+                md5checksumhash: dict[str, str] = md5.randomMD5HashForDNAsequencegenerator(args.maxreadlength[0])
+
+            pileupreads: list[str] = pileup.pileupnotationreader(args.pileupformat, args.pileupreads)
+            # find maximum read length and generate md5 checksums till that length
+
         #call_set = call_variants(test_pileup, reference, 5)
 
         # TO DO: print the ref positions (1-10), and the variant call at each position

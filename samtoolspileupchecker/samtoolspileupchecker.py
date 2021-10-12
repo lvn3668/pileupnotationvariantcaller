@@ -1,7 +1,6 @@
 import re
 from typing import Pattern, Union
 import md5checksumgeneratorfordnabases as md5
-import string
 
 
 # @HD	VN:1.0	SO:coordinate
@@ -19,9 +18,83 @@ import string
 # 9:21597+10M2I25M:R:-209	83	1	21678	0	8M2I27M	=	21469	-244	CACCACATCACATATACCAAGCCTGGCTGTGTCTTCT	<;9<<5><<<<><<<>><<><>><9>><>>>9>>><>	XT:A:R	NM:i:2	SM:i:0	AM:i:0	X0:i:5	X1:i:0	XM:i:0	XO:i:1	XG:i:2	MD:Z:35
 
 
+def parsesequencelines(samtoolsdict: dict[str, str], sequencelinesinsamtoolsheader: list[str], sequencenamesinsamtoolsheader: dict[str, str], md5checksumdict: dict[str, str]) -> Union[tuple[bool, Exception], tuple[bool, dict[str, str]]]:
+    currentseqid = 0
+
+    for entry in sequencelinesinsamtoolsheader:
+        (field, value) = entry.split(':')
+        if field in ["SN", "LN", "AH", "AS", "AN", "DS", "M5", "SP", "TP", "UR"]:
+            if field is "SN" and value in sequencenamesinsamtoolsheader.keys():
+                return False, Exception(
+                    "SN Value (Sequence Id) in @SEQ header in samtools file must be unique")
+            elif field is "LN" and value not in [0, 2 ^ 31 - 1]:
+                return False, Exception(
+                    "LN  (Reference sequence length) is not conforming to Samtools specifications")
+            elif field is "AS" and value is None:
+                return False, Exception(
+                    "AS / Assembly field is empty / not conforming to Samtools specifications")
+            elif field is "UR" and not value.startswith("http"):
+                return False, Exception(
+                    "UR field is empty / not conforming to Samtools specifications")
+            elif field is "SP" and value is None:
+                return False, Exception("SP field / species field in Sam file not as per specification")
+            elif field is "TP" and value not in ['linear', 'circular']:
+                return False, Exception("Topology field in SAM file not as per specification")
+            elif field is "DS" and value is None:
+                return False, Exception(" DS / Description field in SAMTOOLS file not as per description")
+            elif field is "M5" and (
+                    md5.isValidMD5(value) is False or md5.checkIfValidMD5(value, md5checksumdict)):
+                return False, Exception(
+                    " Sorting order of alignments in File level metadata field not as per SAM specifications")
+            elif field is not "SN":
+                samtoolsdict['@SQ'][currentseqid][field] = value
+            # Valid Sequence Number field ; Hence add to dict
+            elif field is "SN":
+                sequencenamesinsamtoolsheader[value] = ""
+                currentseqid = value
+        else:
+            return False, Exception('Invalid fields in Header field in SAM file')
+
+def parseheaderlines(samtoolsdict: dict[str, str], headerlines: list[str], formatinheaderlineversionpattern: Pattern[str],
+                     subsortingalignmentspattern: Pattern[str]) -> Union[tuple[bool, Exception], tuple[bool, dict[str, str]]]:
+    """
+
+    :type samtoolsdict: object
+    :param samtoolsdict:
+    :param headerlines:
+    :param formatinheaderlineversionpattern:
+    :param subsortingalignmentspattern:
+    :return:
+    """
+    for entry in headerlines:
+        (field, value) = entry.split(':')
+        if field in ["VN", "SO", "SS", "GO"]:
+            if field is "VN" or not re.match(formatinheaderlineversionpattern,
+                                             field):
+                return False, Exception(
+                    " Version number in File level metadata field not as per SAM specifications")
+            elif field is "SO" and value not in ['unknown', 'unsorted', 'queryname', 'coordinate']:
+                return False, Exception(
+                    " Sorting order of alignments in File level metadata field not as per SAM specifications")
+            elif field is "GO" and value not in \
+                    ['none', 'query', 'reference']:
+                return False, Exception(
+                    " Grouping of alignments in File level metadata field not as per SAM specifications")
+            elif field is "SS" and not re.match(subsortingalignmentspattern,
+                                                value):
+                return False, Exception(
+                    " Subsorting alignments pattern File level metadata field not as per SAM specifications")
+            else:
+                samtoolsdict['@HD'][field] = value
+        else:
+            return False, Exception('Invalid fields in Header field in SAM file')
+    return True, samtoolsdict
+
+
 def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: hash, dnabases: str,
                             pileupnotation: str, md5checksumdict: dict) -> Union[tuple[bool, Exception], bool]:
     """
+    :param md5checksumdict:
     :type pileupnotation: object
     :param pileupnotation: 
     :param dnabases: 
@@ -58,14 +131,11 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
         seqpattern: Pattern[str] = re.compile('\*|[A-Za-z=.]+')
         qualpattern: Pattern[str] = re.match('[!-~]+')
         samtoolsdict: dict[str, str] = {}
-        sequencenamesinsamtoolsheader: dict[str, str] = {}
+
         rgidentifierinsamtoolsheader: dict[str, str] = {}
         pgidentifierinsamtoolsheader: dict[str, str] = {}
-        # In HD Line, VN can be only of format major.minor version
-        formatinheaderlineversionpattern: Pattern[str] = re.compile('^[0-9]+\.[0-9]+$')
+        validityofsamtoolsfile: bool = False
 
-        # sub sorting pattern can only be of format (type of sorting ):()
-        subsortingalignmentspattern: Pattern[str] = re.compile('(coordinate|queryname|unsorted)(:[A-Za-z0-9_-]+)+')
         for line in pileupreads:
             # split as chromosome, 1-based coordinate, reference base, number of reads covering that position, reads themselves
             # min depth calculated for reads
@@ -79,70 +149,26 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
             # if there is a HD line, and it matches the specified regex then parse the sub fields as present
             elif line.startswith('@HD') and (
                     re.match(headerseqreadgroupprogramlinepattern, line) and filelevelmetadata is False):
+
                 filelevelmetadata = True
                 headerlines = line.split(
                     '\t')
-                for entry in headerlines:
-                    (field, value) = entry.split(':')
-                    if field in ["VN", "SO", "SS", "GO"]:
-                        if field is "VN" or not re.match(formatinheaderlineversionpattern,
-                                                         field):
-                            return False, Exception(
-                                " Version number in File level metadata field not as per SAM specifications")
-                        elif field is "SO" and value not in ['unknown', 'unsorted', 'queryname', 'coordinate']:
-                            return False, Exception(
-                                " Sorting order of alignments in File level metadata field not as per SAM specifications")
-                        elif field is "GO" and value not in \
-                                ['none', 'query', 'reference']:
-                            return False, Exception(
-                                " Grouping of alignments in File level metadata field not as per SAM specifications")
-                        elif field is "SS" and not re.match(subsortingalignmentspattern,
-                                                            value):
-                            return False, Exception(
-                                " Subsorting alignments pattern File level metadata field not as per SAM specifications")
-                        else:
-                            samtoolsdict['@HD'][field] = value
-                    else:
-                        return False, Exception('Invalid fields in Header field in SAM file')
+                # In HD Line, VN can be only of format major.minor version
+                formatinheaderlineversionpattern: Pattern[str] = re.compile('^[0-9]+\.[0-9]+$')
+                # sub sorting pattern can only be of format (type of sorting ):()
+                subsortingalignmentspattern: Pattern[str] = re.compile(
+                    '(coordinate|queryname|unsorted)(:[A-Za-z0-9_-]+)+')
+                validityofsamtoolsfile, samtoolsdict = parseheaderlines(samtoolsdict, headerlines, formatinheaderlineversionpattern,
+                                                subsortingalignmentspattern)
+
             elif line.startswith('@SQ') and not re.match(headerseqreadgroupprogramlinepattern, line):
                 return False, Exception("Sequence fields not conforming to SAM specification")
             elif line.startswith('@SQ') and re.match(headerseqreadgroupprogramlinepattern, line):
-                currentseqid = 0
-                sequencelines = line.split(
+                sequencenamesinsamtoolsheader: dict[str, str] = {}
+                sequencelinesinsamtoolsheader = line.split(
                     '\t')
-                for entry in sequencelines:
-                    (field, value) = entry.split(':')
-                    if field in ["SN", "LN", "AH", "AS", "AN", "DS", "M5", "SP", "TP", "UR"]:
-                        if field is "SN" and value in sequencenamesinsamtoolsheader.keys():
-                            return False, Exception(
-                                "SN Value (Sequence Id) in @SEQ header in samtools file must be unique")
-                        elif field is "LN" and value not in [0, 2 ^ 31 - 1]:
-                            return False, Exception(
-                                "LN  (Reference sequence length) is not conforming to Samtools specifications")
-                        elif field is "AS" and value is None:
-                            return False, Exception(
-                                "AS / Assembly field is empty / not conforming to Samtools specifications")
-                        elif field is "UR" and not value.startswith("http"):
-                            return False, Exception(
-                                "UR field is empty / not conforming to Samtools specifications")
-                        elif field is "SP" and value is None:
-                            return False, Exception("SP field / species field in Sam file not as per specification")
-                        elif field is "TP" and value not in ['linear', 'circular']:
-                            return False, Exception("Topology field in SAM file not as per specification")
-                        elif field is "DS" and value is None:
-                            return False, Exception(" DS / Description field in SAMTOOLS file not as per description")
-                        elif field is "M5" and (
-                                md5.isValidMD5(value) is False or md5.checkIfValidMD5(value, md5checksumdict)):
-                            return False, Exception(
-                                " Sorting order of alignments in File level metadata field not as per SAM specifications")
-                        elif field is not "SN":
-                            samtoolsdict['@SQ'][currentseqid][field] = value
-                        # Valid Sequence Number field ; Hence add to dict
-                        elif field is "SN":
-                            sequencenamesinsamtoolsheader[value] = ""
-                            currentseqid = value
-                    else:
-                        return False, Exception('Invalid fields in Header field in SAM file')
+                validityofsamtoolsfile, samtoolsdict = parsesequencelines(samtoolsdict, sequencelinesinsamtoolsheader, sequencenamesinsamtoolsheader, md5checksumdict)
+
             elif line.startswith('@RG') and re.match(headerseqreadgroupprogramlinepattern, line):
                 currentrgid = 0
                 readgrouplines = line.split(
