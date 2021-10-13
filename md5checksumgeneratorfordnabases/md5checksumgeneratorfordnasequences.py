@@ -57,7 +57,6 @@ def randomMD5HashForDNAsequencegenerator(maxlength: int, filename: str):
             print("size of result set for nmer of length ", length, " is ", sys.getsizeof(result))
             for x in result:
                 for y in pool:
-                    #print(''.join(tuple(x +[y])))
                     fname.write(hashlib.md5(''.join(tuple(x + [y])).encode()).hexdigest())
 
 
