@@ -13,6 +13,7 @@ import pileupfilereader.pileupnotationreader as pileup
 import referencegenomecheck.referencegenomecheck as refgenome
 import variantcaller.variantcaller as vc
 import chromosomelengthreader.readassemblyinfo as chrlengthreader
+import samtoolspileupchecker.samtoolspileupchecker as smtools
 
 # sequqence id , 1 based coordinate, reference base, number of reads covering that base,
 # , / . matching positive / negative strand
@@ -135,9 +136,10 @@ def call_variants(pileupreads: list[str], min_depth: int) -> str:
                         deletedbases[chromosomenumber][positiononchromosome][readnumber] = 1
                     elif readstrings[readnumber] == '^':
                         readstrands[chromosomenumber][positiononchromosome][readnumber] = 'start'
-                        readquality[chromosomenumber][positiononchromosome][readnumber] = ord(readstrings[readnumber+1])-33
+                        readquality[chromosomenumber][positiononchromosome][readnumber] = ord(
+                            readstrings[readnumber + 1]) - 33
                         # Move forward twice because start of read and its mapping quality has been parsed
-                        readnumber = readnumber+1
+                        readnumber = readnumber + 1
 
             readnumber = readnumber + 1
             uniquebases, countsofuniquebases = np.unique(reads, return_counts=True)
@@ -164,14 +166,15 @@ def call_variants(pileupreads: list[str], min_depth: int) -> str:
         print('x =', x)
         print('y =', y)
 
-
-#def print_hi(name):
+    # def print_hi(name):
     """
 
 #    :param name:
     """
     # Use a breakpoint in the code line below to debug your script.
- #   print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+
+
+#   print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
 
 
 # Press the green button in the gutter to run the script.
@@ -179,45 +182,60 @@ if __name__ == '__main__':
     try:
         parser = argparse.ArgumentParser(description='Naive variant detector using pileupreads notation')
         parser.add_argument('--referencefastafile', metavar='reference fasta file', type=str, nargs='+',
-                        help='reference fasta file')
+                            help='reference fasta file')
         parser.add_argument('--dnabasesfilename', metavar='dna bases file', type=str, nargs='+', help='valid dna bases')
-        parser.add_argument('--pileupreads', metavar='reads pileupreads notation', type=str, nargs='+', help='reads pileupreads notation')
-        parser.add_argument('--pileupformat', metavar='pileupreads format', type=str, nargs='+', help='pile up format notation')
-        parser.add_argument('--minreaddepth', metavar='minimum read depth', type=int, nargs='+', help='minimum read depth')
+        parser.add_argument('--pileupreads', metavar='reads pileupreads notation', type=str, nargs='+',
+                            help='reads pileupreads notation')
+        parser.add_argument('--pileupformat', metavar='pileupreads format', type=str, nargs='+',
+                            help='pile up format notation')
+        parser.add_argument('--minreaddepth', metavar='minimum read depth', type=int, nargs='+',
+                            help='minimum read depth')
         parser.add_argument('--assemblymetadata', metavar='assembly information', type=str, nargs='+',
                             help='assembly information / chromosome lengths')
-        parser.add_argument('--maxreadlength', metavar='max read lengths for md5 checksum generator', type=int, nargs='+', help='maximum read lengths for md5 checksum generator')
+        parser.add_argument('--maxreadlength', metavar='max read lengths for md5 checksum generator', type=int,
+                            nargs='+', help='maximum read lengths for md5 checksum generator')
         args = parser.parse_args()
-        validityofassemblymetadatafile: bool = False
-        validityofreferencefile: bool = False
-        organism: str = None
-        assembly: str = None
-        chrLengthshash: dict[str, str] = None
+        validityofassemblymetadatafile: bool
+        validityofreferencefile: bool
+        organism: str
+        assembly: str
+        chrLengthshash: dict[str, str]
+        listofpileupreads: list[str]
         print(args.referencefastafile)
         print(args.assemblymetadata)
         # Keep this line:
-        (validityofassemblymetadatafile, chrLengthshash, organism, assembly) = chrlengthreader.readchromosomelengths(''.join(args.assemblymetadata))
+        (validityofassemblymetadatafile, chrLengthshash, organism, assembly) = chrlengthreader.readchromosomelengths(
+            ''.join(args.assemblymetadata))
         if validityofassemblymetadatafile:
             print("Reference file ", ''.join(args.referencefastafile))
-            validityofreferencefile, reference = refgenome.referencegenomeparser(''.join(args.referencefastafile), ''.join(args.dnabasesfilename))
+            dnabases: list[str]
+            validityofreferencefile, reference, dnabases = refgenome.referencegenomeparser(''.join(args.referencefastafile),
+                                                                                 ''.join(args.dnabasesfilename))
             if validityofreferencefile:
-                print("After reading reference genome")
+                # find maximum read length and generate md5 checksums till that length
                 md5.randomMD5HashForDNAsequencegenerator(args.maxreadlength[0], "D:\md5checksum.txt")
-
-            #pileupreads: list[str] = pileup.pileupnotationreader(args.pileupformat, args.pileupreads)
-            # find maximum read length and generate md5 checksums till that length
-
-        #call_set = call_variants(test_pileup, reference, 5)
+                validityofpileupreadsfile: bool
+                listofpileupreads: list[str]
+                pileupnotationpattern: str
+                validityofpileupreadsfile, listofpileupreads, pileupnotationpattern = pileup.pileupnotationreader(args.pileupformat, args.pileupreads)
+                print(" After reading in pileup lines ")
+                # if pileupreads are in right format, check for data integrity / samtools checker
+                if validityofpileupreadsfile:
+                    smtools.samtools_output_checker(listofpileupreads,
+                                                    args.minreaddepth,
+                                                    chrLengthshash, ''.join(dnabases),
+                            pileupnotationpattern, "D\md5checksum.txt")
+        # call_set = call_variants(test_pileup, reference, 5)
 
         # TO DO: print the ref positions (1-10), and the variant call at each position
         # (Bonus: can you use list comprehension to print the results with one line of code?)
-        #print(call_set)
+        # print(call_set)
         # find genes of significance
 
     except Exception as exception:
         print(type(exception))  # the exception instance
         print(exception.args)  # arguments stored in .args
         print(exception)  # __str__ allows args to be printed directly,
-        #x, y = exception.args  # unpack args
-        #print('x =', x)
-        #print('y =', y)
+        # x, y = exception.args  # unpack args
+        # print('x =', x)
+        # print('y =', y)

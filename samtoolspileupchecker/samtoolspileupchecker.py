@@ -18,7 +18,9 @@ import md5checksumgeneratorfordnabases as md5
 # 9:21597+10M2I25M:R:-209	83	1	21678	0	8M2I27M	=	21469	-244	CACCACATCACATATACCAAGCCTGGCTGTGTCTTCT	<;9<<5><<<<><<<>><<><>><9>><>>>9>>><>	XT:A:R	NM:i:2	SM:i:0	AM:i:0	X0:i:5	X1:i:0	XM:i:0	XO:i:1	XG:i:2	MD:Z:35
 
 
-def parsesequencelines(samtoolsdict: dict[str, str], sequencelinesinsamtoolsheader: list[str], sequencenamesinsamtoolsheader: dict[str, str], md5checksumdict: dict[str, str]) -> Union[tuple[bool, Exception], tuple[bool, dict[str, str]]]:
+def parsesequencelines(samtoolsdict: dict[str, str], sequencelinesinsamtoolsheader: list[str],
+                       sequencenamesinsamtoolsheader: dict[str, str], md5checksumdict: dict[str, str]) -> Union[
+    tuple[bool, Exception], tuple[bool, dict[str, str]]]:
     currentseqid = 0
 
     for entry in sequencelinesinsamtoolsheader:
@@ -55,8 +57,11 @@ def parsesequencelines(samtoolsdict: dict[str, str], sequencelinesinsamtoolshead
         else:
             return False, Exception('Invalid fields in Header field in SAM file')
 
-def parseheaderlines(samtoolsdict: dict[str, str], headerlines: list[str], formatinheaderlineversionpattern: Pattern[str],
-                     subsortingalignmentspattern: Pattern[str]) -> Union[tuple[bool, Exception], tuple[bool, dict[str, str]]]:
+
+def parseheaderlines(samtoolsdict: dict[str, str], headerlines: list[str],
+                     formatinheaderlineversionpattern: Pattern[str],
+                     subsortingalignmentspattern: Pattern[str]) -> Union[
+    tuple[bool, Exception], tuple[bool, dict[str, str]]]:
     """
 
     :type samtoolsdict: object
@@ -134,7 +139,9 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
 
         rgidentifierinsamtoolsheader: dict[str, str] = {}
         pgidentifierinsamtoolsheader: dict[str, str] = {}
-        validityofsamtoolsfile: bool = False
+        validityofsamtoolsfile: bool
+
+        print("Inside samtools checker function ")
 
         for line in pileupreads:
             # split as chromosome, 1-based coordinate, reference base, number of reads covering that position, reads themselves
@@ -158,8 +165,9 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
                 # sub sorting pattern can only be of format (type of sorting ):()
                 subsortingalignmentspattern: Pattern[str] = re.compile(
                     '(coordinate|queryname|unsorted)(:[A-Za-z0-9_-]+)+')
-                validityofsamtoolsfile, samtoolsdict = parseheaderlines(samtoolsdict, headerlines, formatinheaderlineversionpattern,
-                                                subsortingalignmentspattern)
+                validityofsamtoolsfile, samtoolsdict = parseheaderlines(samtoolsdict, headerlines,
+                                                                        formatinheaderlineversionpattern,
+                                                                        subsortingalignmentspattern)
 
             elif line.startswith('@SQ') and not re.match(headerseqreadgroupprogramlinepattern, line):
                 return False, Exception("Sequence fields not conforming to SAM specification")
@@ -167,7 +175,9 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
                 sequencenamesinsamtoolsheader: dict[str, str] = {}
                 sequencelinesinsamtoolsheader = line.split(
                     '\t')
-                validityofsamtoolsfile, samtoolsdict = parsesequencelines(samtoolsdict, sequencelinesinsamtoolsheader, sequencenamesinsamtoolsheader, md5checksumdict)
+                validityofsamtoolsfile, samtoolsdict = parsesequencelines(samtoolsdict, sequencelinesinsamtoolsheader,
+                                                                          sequencenamesinsamtoolsheader,
+                                                                          md5checksumdict)
 
             elif line.startswith('@RG') and re.match(headerseqreadgroupprogramlinepattern, line):
                 currentrgid = 0

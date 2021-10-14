@@ -1,7 +1,6 @@
 import os
-import re
 
-# equqence id , 1 based coordinate, reference base, number of reads covering that base,
+# sequence id , 1 based coordinate, reference base, number of reads covering that base,
 # , / . matching positive / negative strand
 #  ATGCN mismatch on fwd strand
 # atgcn mismatch on rev strand
@@ -38,53 +37,47 @@ import re
 
 # Author: Lalitha Viswanathan
 # Pileup read notation variant caller
-from typing import TextIO, Pattern
+from typing import TextIO, Union
 
 
-def pileupnotationreader(pileupnotationfilename: str, pileupreadsfilename: str) -> list[str]:
+def pileupnotationreader(pileupnotationfilename: str, pileupreadsfilename: str) -> Union[
+    bool, tuple[bool, list[str], str]]:
     """
     :param pileupreadsfilename:
     :param pileupnotationfilename:
     """
     try:
+        print("Pileup notation filename ", pileupnotationfilename)
+        print("Pileup reads filename ", pileupreadsfilename)
         # check if size of file is 0
         if os.stat(''.join(pileupnotationfilename)).st_size == 0:
             print(pileupnotationfilename, ' File is empty')
-            raise Exception(pileupnotationfilename, ' file is empty')
+            return False
         else:
             pileupnotationfilehandle: TextIO = open(''.join(pileupnotationfilename), 'r')
-            pileupreads = pileupnotationfilehandle.readlines()
-            for line in pileupreads:
-                # Each line contains one valid character and a newline
+            pileuplines: list[str] = pileupnotationfilehandle.readlines()
+
+            for line in pileuplines:
                 if len(line) > 2:
-                    pileupreads.remove(line)
-                    raise Exception("Pileup format file not in right format; One base per line")
+                    pileuplines.remove(line)
+                    return False
                 else:
-                    pileupreads[pileupreads.index(line)] = line.strip()
-            pileupnotationpattern: str = ''.join(pileupreads)
+                    pileuplines[pileuplines.index(line)] = line.strip()
 
-        if os.stat(''.join(pileupreadsfilename)).st_size == 0:
-            print(pileupreadsfilename, ' file is empty')
-            raise Exception(pileupreadsfilename, ' file is empty')
-        else:
-            print(pileupreadsfilename, ' file is not empty')
-            # Check if mpileup file is correctly formatted or not
+            pileupnotationpattern: str = ''.join(pileuplines)
+            if os.stat(''.join(pileupreadsfilename)).st_size == 0:
+                print(pileupreadsfilename, ' file is empty')
+                return False
+            else:
+                print(pileupreadsfilename, ' file is not empty')
+                pileupreadsfilehandle: TextIO = open(''.join(pileupreadsfilename), 'r')
+                pileuplines: list[str] = pileupreadsfilehandle.readlines()
+                for line in pileuplines:
+                    if line is None:
+                        pileuplines.remove(line)
 
-            pileupreadsfilehandle: TextIO = open(''.join(pileupreadsfilename), 'r')
-            pileupreads = pileupreadsfilehandle.readlines()
-            for line in pileupreads:
-                if line.startswith('>'):
-                    continue
-                elif len(line) > 1:
-                    regexpattern: Pattern[str] = re.compile("[" + pileupnotationpattern + "]+")
-                    if regexpattern.match(line.strip()):
-                        pileupreads[pileupreads.index(line)] = line.strip()
-                    else:
-                        pileupreads.remove(line)
-                        raise Exception("Invalid bases in pileup notation")
-
-        pileupreadsfilehandle.close()
-        return pileupreads
+                pileupreadsfilehandle.close()
+        return True, pileuplines, pileupnotationpattern
     except Exception as exception:
         print(type(exception))  # the exception instance
         print(exception.args)  # arguments stored in .args

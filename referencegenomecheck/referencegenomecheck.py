@@ -6,7 +6,7 @@ import re
 from typing import TextIO
 
 
-def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str) -> tuple[bool, str]:
+def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str) -> tuple[bool, str, list[str]]:
     """
     :rtype: object
     :return:
@@ -23,20 +23,19 @@ def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str) -> tupl
             raise Exception(dnabasesfilename, ' file is empty')
         else:
             print('File ', dnabasesfilename, ' is not empty')
-
             dnabasesfilehandle: TextIO = open(dnabasesfilename, 'r')
-            linesinfile: list[str] = dnabasesfilehandle.readlines()
-            print(" Number of lines in ", dnabasesfilename, " is ", len(linesinfile))
+            linesindnabasesfile: list[str] = dnabasesfilehandle.readlines()
+            print(" Number of lines in ", dnabasesfilename, " is ", len(linesindnabasesfile))
 
             # Strips the newline character
-            for line in linesinfile:
+            for line in linesindnabasesfile:
                 if len(line.strip()) > 1:
-                    linesinfile.remove(line)
+                    linesindnabasesfile.remove(line)
                     raise Exception("DNA Bases file not in right format; One base per line")
             dnabasesfilehandle.close()
         ### Read dnabases file
 
-        pattern = ''.join(linesinfile)
+        pattern = ''.join(linesindnabasesfile)
 
         ### Read reference genome file
         if os.stat(refgenomefilename).st_size == 0:
@@ -45,20 +44,24 @@ def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str) -> tupl
         else:
             print(refgenomefilename, ' File is not empty')
             refgenomefilehandle: TextIO = open(refgenomefilename, "r", encoding="utf-8")
-            linesinfile: list[str] = refgenomefilehandle.readlines()
+            linesindnabasesfile: list[str] = refgenomefilehandle.readlines()
 
-            for line in linesinfile:
+            for line in linesindnabasesfile:
+
                 if re.search(r'['+pattern+']', line.strip()):
                     continue
                 elif line.startswith('>'):
-                    linesinfile.remove(line.strip())
+                    linesindnabasesfile.remove(line.strip())
 
-            reference = ''.join(linesinfile).replace('\n', '')
+            reference = ''.join(linesindnabasesfile).replace('\n', '')
             refgenomefilehandle.close()
-            if len(reference) > 0:
-                return True, reference
+            if len(reference) > 0 and len(linesindnabasesfile) > 0:
+                print("Inside true ")
+                return True, reference, linesindnabasesfile
             else:
-                return False, reference
+                print("Inside false ")
+                return False, reference, linesindnabasesfile
+
     except Exception as exception:
         print(type(exception))  # the exception instance
         print(exception.args)  # arguments stored in .args
