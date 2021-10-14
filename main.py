@@ -221,6 +221,7 @@ if __name__ == '__main__':
                 print(" After reading in pileup lines ")
                 # if pileupreads are in right format, check for data integrity / samtools checker
                 if validityofpileupreadsfile:
+                    print("Calling samtools validity checker on file ")
                     smtools.samtools_output_checker(listofpileupreads,
                                                     args.minreaddepth,
                                                     chrLengthshash, ''.join(dnabases),
