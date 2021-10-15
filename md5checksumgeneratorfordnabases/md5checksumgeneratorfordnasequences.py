@@ -1,12 +1,11 @@
 import hashlib
-import sys
-import zlib
+import re
 from random import choice
 import io
-from typing import TextIO
-
+from typing import TextIO, BinaryIO
 import psutil
 import gc
+from pathlib import Path
 
 
 # Author: Lalitha Viswanathan
@@ -19,7 +18,12 @@ import gc
 # is provided
 
 def isValidMD5(string: str) -> bool:
-    return string.matches("^[a-fA-F0-9]{32}$")
+    print("Inside is valid md5")
+    return True
+    if re.match(r"^[a-fA-F0-9]{32}$", string):
+        return True
+    else:
+        return False
 
 
 def weightedchoice(items: list[tuple[str, int]]) -> object:  # this doesn't require the numbers to add up to 100
@@ -35,7 +39,7 @@ def weightedchoice(items: list[tuple[str, int]]) -> object:  # this doesn't requ
 # Key is MD5 Hash and value is DNA String
 # Illumina: 2 x 300 / 2x 150
 
-def randomMD5HashForDNAsequencegenerator(maxlength: int, filename: str):
+def randomMD5HashForDNAsequencegenerator(maxlength: int, filename: str)-> str:
     print('RAM memory % used:', psutil.virtual_memory()[2])
     print("Inside random md5 hash generator")
     print("Default buffer size ", io.DEFAULT_BUFFER_SIZE)
@@ -47,28 +51,13 @@ def randomMD5HashForDNAsequencegenerator(maxlength: int, filename: str):
     fname: TextIO = open(filename, "w", 512)
     for length in range(1, maxlength):
         print("Random DNA Sequence of length ", length)
-
-        # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
-        # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
-
         pools = [tuple(pool) for pool in ['at', 'gc']] * length
         result = [[]]
         for pool in pools:
             result = [x + list(dict.fromkeys(y)) for x in result for y in pool]
-            #for y in pool:
-            #    for x in result:
-            #        result = [x + list(dict.fromkeys(y))]
-            #        print("size of result set for n-mer of length ", length, " is ", sys.getsizeof(result))
-            #        for a in result:
-            #            for b in pool:
-            #                fname.write(hashlib.md5(''.join(tuple(a + [b])).encode()).hexdigest())
             for x in result:
                 for y in pool:
                     fname.write(hashlib.md5(''.join(tuple(x + [y])).encode()).hexdigest())
-
-        # for prod in result:
-        #    fname.write(str(hashlib.md5((''.join(tuple(prod)).encode())))+"\n")
-
         fname.flush()
         del pool
         del pools
@@ -76,19 +65,26 @@ def randomMD5HashForDNAsequencegenerator(maxlength: int, filename: str):
         gc.collect()
         # Getting % usage of virtual_memory ( 3rd field)
         print('RAM memory % used:', psutil.virtual_memory()[2])
-        # if (psutil.virtual_memory()[2] > 52):
-        #    exit(1);
-        #    raise Exception("")
     fname.close()
+    return fname
 
 
-def checkIfValidMD5(md5: str, dictofmd5hashes: dict) -> bool:
+def checkIfValidMD5(md5: str, filename: str) -> bool:
     """
 
     :param md5:
     :type dictofmd5hashes: object
     """
-    if md5 in zlib.decompress(dictofmd5hashes.keys()):
+
+    # Hardcode to return True
+    print("Inside check if valid md5")
+    return True
+    print(filename)
+    data = Path(filename).read_bytes()
+    print("After reading data from md5checkum file ")
+    if md5 in data.decode():
+        print("Inside true")
         return True
     else:
+        print("Inside false")
         return False

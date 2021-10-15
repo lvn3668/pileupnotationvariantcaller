@@ -213,7 +213,7 @@ if __name__ == '__main__':
                                                                                  ''.join(args.dnabasesfilename))
             if validityofreferencefile:
                 # find maximum read length and generate md5 checksums till that length
-                md5.randomMD5HashForDNAsequencegenerator(args.maxreadlength[0], "D:\md5checksum.txt")
+                md5.randomMD5HashForDNAsequencegenerator(args.maxreadlength[0], "C:\\Users\\visu4\\PycharmProjects\\variantcallingfrompileup\\data\\md5checksum.txt")
                 validityofpileupreadsfile: bool
                 listofpileupreads: list[str]
                 pileupnotationpattern: str
@@ -225,7 +225,7 @@ if __name__ == '__main__':
                     smtools.samtools_output_checker(listofpileupreads,
                                                     args.minreaddepth,
                                                     chrLengthshash, ''.join(dnabases),
-                            pileupnotationpattern, "D\md5checksum.txt")
+                            pileupnotationpattern, "C:\\Users\\visu4\\PycharmProjects\\variantcallingfrompileup\\data\\md5checksum.txt")
         # call_set = call_variants(test_pileup, reference, 5)
 
         # TO DO: print the ref positions (1-10), and the variant call at each position
