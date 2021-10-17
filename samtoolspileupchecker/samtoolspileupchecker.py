@@ -17,93 +17,37 @@ import md5checksumgeneratorfordnabases.md5checksumgeneratorfordnasequences as md
 # 19:20389:F:275+18M2D19M	147	1	17919	0	18M2D19M	=	17644	-314	GTAGTACCAACTGTAAGTCCTTATCTTCATACTTTGT	;44999;499<8<8<<<8<<><<<<><7<;<<<>><<	XT:A:R	NM:i:2	SM:i:0	AM:i:0	X0:i:4	X1:i:0	XM:i:0	XO:i:1	XG:i:2	MD:Z:18^CA19
 # 9:21597+10M2I25M:R:-209	83	1	21678	0	8M2I27M	=	21469	-244	CACCACATCACATATACCAAGCCTGGCTGTGTCTTCT	<;9<<5><<<<><<<>><<><>><9>><>>>9>>><>	XT:A:R	NM:i:2	SM:i:0	AM:i:0	X0:i:5	X1:i:0	XM:i:0	XO:i:1	XG:i:2	MD:Z:35
 
-def parsepggrouplines(samtoolsdict: dict[str, str]):
-    currentpgid = 0
-    programgrouplines = line.split('\t')
-    for entry in programgrouplines:
-        (field, value) = entry.split(':')
-        if field in ["ID", "PN", "CL", "PP", "DS", "VN"]:
-            if field == "ID" and value in rgidentifierinsamtoolsheader.keys():
-                return False, Exception(
-                    "RG Id (Read Group Id) in @RG header in samtools file must be unique")
-            elif field == "CL" and value is None:
-                return False, Exception("Command Line field not conforming to SAMTools specification")
-            elif field == "DS" and value is None:
-                return False, Exception(
-                    "DS  (Description) is not conforming to Samtools specifications")
-            elif field == "VN" and value is None:
-                return False, Exception(
-                    "VN  (Version Number) is not conforming to Samtools specifications")
-            elif field == "PN" and value is None:
-                return False, Exception(
-                    "PN Program Name not conforming to Samtools specifications")
-            elif field != "ID":
-                samtoolsdict['@PG'][currentpgid][field] = value
-            # Valid Sequence Number field ; Hence add to dict
-            elif field == "ID":
-                pgidentifierinsamtoolsheader[value] = ""
-                currentpgid = value
-        else:
-            return False, Exception('Invalid fields in Header field in SAM file')
-
-
-def parsereadgrouplines(samtoolsdict: dict[str, str], readgrouplinesinsamtoolsheader: list[str],
-                        rgidentifierinsamtoolsheader: list[str]):
+def parsepggrouplines(samtoolsdict: dict[str, str], pggrouplinesinsamtoolsheader: list[str],
+                      pgidentifierinsamtoolsheader: dict[str, str]) -> object:
+    """
+    :param samtoolsdict:
+    :param pggrouplinesinsamtoolsheader:
+    :param pgidentifierinsamtoolsheader:
+    """
     try:
-        currentrgid = 0
-        for line in readgrouplinesinsamtoolsheader:
-            print(readgrouplinesinsamtoolsheader)
-            readgrouplines: list[str] = line.split('\t')
-            for entry in readgrouplines:
-                print(entry)
-                if ':' in entry:
-                    (field, value) = entry.split(':')
-                else:
-                    continue
-                if field in ["ID", "BC", "CN", "DS", "DS", "FO", "KS", "LB", "PG", "PI", "PL", "PM", "PU", "SM"]:
-                    print(field,"\t",value)
-                    if field == "ID" and value in rgidentifierinsamtoolsheader.keys():
+        pggroupdict: dict[str, list] = {"ID": [], "PN": [], "CL": [], "PP": [], "DS": [], "VN": []}
+        currentpgid = 0
+        for entry in pggrouplinesinsamtoolsheader:
+            print(pggrouplinesinsamtoolsheader)
+            pggrouplines: list[str] = entry.split('\t')
+            for entry in pggrouplines:
+                (field, value) = entry.split(':')
+                if field in ["ID", "PN", "CL", "PP", "DS", "VN"]:
+                    if (field == "ID" and value in pgidentifierinsamtoolsheader.keys()
+                            or (field in ["CL", "DS", "VN", "PN", "ID"] and value is None)):
                         return False, Exception(
-                            "RG Id (Read Group Id) in @RG header in samtools file must be unique")
-                    elif field == "BC" and value is None:
-                        return False, Exception("Barcode in @RG Field not conforming to SAMTools specification")
-                    elif field == "PG" and value is None:
-                        return False, Exception(
-                            "PG  (Program used for processing the read group) is not conforming to Samtools specifications")
-                    elif field == "PI" and value is None:
-                        return False, Exception(
-                            "PI  (Predicted median insert size) is not conforming to Samtools specifications")
-                    elif field == "CN" and value is None:
-                        return False, Exception(
-                            "Sequence center producing the reads is empty / not conforming to Samtools specifications")
-                    # Not covering cases when PL is different from the below or is unknown (such sam files are marked as invalid; assumed sam file since 1-based indexing is checked for)
-                    elif field == "PL" and value not in ['CAPILLARY', 'DNBSEQ', 'HELICOS', 'ILLUMINA', 'IONTORRENT',
-                                                         'LS454', 'ONT', 'PACBIO', 'SOLID']:
-                        return False, Exception(
-                            "Platform / technology to produce the reads is empty / not conforming to Samtools specifications")
-                    elif field == "PM" and value is None:
-                        return False, Exception(
-                            " Further details about the PM field in SAMTOOLS file not as per description")
-                    elif field == "SM" and value is None:
-                        return False, Exception(" SM / Sample field in SAMTOOLS file not as per description")
-                    elif field == "DS" and value is None:
-                        return False, Exception(" DS / Description field in SAMTOOLS file not as per description")
-                    elif field == "DT" and not value.isDate():
-                        return False, Exception(
-                            "DT field (date when sequencing run was performed) is empty / not conforming to Samtools specifications")
-                    elif field == "KS" and value is None:
-                        return False, Exception(
-                            "KS Field / array of nucleotide bases that correspond to the key sequence in each read in Sam file not as per specification")
-                    elif field == "LB" and value is None:
-                        return False, Exception("Library field in SAM file not as per specification")
+                            field, " in samtools file not as per samtools specification ")
                     elif field != "ID":
-                        samtoolsdict['@RG'][currentrgid][field] = value
-                    # Valid Sequence Number field ; Hence add to dict
+                        pggroupdict[field].append(value)
+                        # Valid Sequence Number field ; Hence add to dict
                     elif field == "ID":
-                        rgidentifierinsamtoolsheader[value] = ""
-                        currentrgid = value
+                        pgidentifierinsamtoolsheader[value] = ""
+                        pggroupdict[field].append(value)
+                        currentpgid = value
                 else:
                     return False, Exception('Invalid fields in Header field in SAM file')
+        samtoolsdict['@PG'].append(pggroupdict)
+        return True, samtoolsdict
     except Exception as exception:
         print(type(exception))  # the exception instance
         print(exception.args)  # arguments stored in .args
@@ -113,19 +57,76 @@ def parsereadgrouplines(samtoolsdict: dict[str, str], readgrouplinesinsamtoolshe
         print('y =', y)
 
 
-def parsesequencelines(samtoolsdict: dict[str, str], sequencelinesinsamtoolsheader: list[str],
+def parsereadgrouplines(samtoolsdict: dict[str, str], readgrouplinesinsamtoolsheader: list[str],
+                        rgidentifierinsamtoolsheader: dict[str, str]):
+    try:
+        currentrgid = 0
+        # @RG	ID:UM0098:1	PL:ILLUMINA	PU:HWUSI-EAS1707-615LHAAXX-L001	LB:80	DT:2010-05-05T20:00:00-0400	SM:SD37743	CN:UMCORE
+        readgroupdict: dict[str, list] = {"ID": [], "BC": [], "CN": [], "DS": [], "F0": [], "KS": [], "LB": [],
+                                          "PG": [],
+                                          "PI": [], "PL": [], "PM": [], "PU": [], "SM": [], "DT": []}
+        for line in readgrouplinesinsamtoolsheader:
+            print(readgrouplinesinsamtoolsheader)
+            readgrouplines: list[str] = line.split('\t')
+            for entry in readgrouplines:
+                print(entry)
+                if ':' in entry and not entry.startswith("ID") and not entry.startswith("DT"):
+                    (field, value) = entry.split(':')
+                    if field in ["ID", "BC", "CN", "DS", "FO", "KS", "LB", "PG", "PI", "PL", "PM", "PU", "SM",
+                                 "DT"] and value is None:
+                        return False, Exception(field, " is invalid ")
+                    else:
+                        readgroupdict[field].append(value)
+                elif ':' in entry and entry.startswith("ID"):
+                    (field, value, value2) = entry.split(':')
+                    if value + "_" + value2 in rgidentifierinsamtoolsheader.keys():
+                        return False, Exception(
+                            "RG Id (Read Group Id) in @RG header in samtools file must be unique")
+                    else:
+                        rgidentifierinsamtoolsheader[value + "_" + value2] = ""
+                        readgroupdict[field].append(value)
+                elif ':' in entry and entry.startswith("DT"):
+                    print("Parsing date: ", entry)
+                    m = re.compile("^DT:(\d{4}-\d{1,2}-\d{1,2})T(\d{1,2}:\d{1,2}:\d{1,2}-\d+)$")
+                    g = m.search(entry)
+                    if g:
+                        print("Inside groups ")
+                        print(g.group(1))
+                        print(g.group(2))
+                        field = "DT"
+                        value = g.group(1)
+                        value2 = g.group(2)
+                        return False, Exception(" Invalid header field in samtools: ", field, " value ", value,
+                                                " value2 ", value2)
+                else:
+                    return False, Exception('Invalid fields in Header field in SAM file')
+
+        samtoolsdict['@RG'].append(readgroupdict)
+        return True, samtoolsdict
+    except Exception as exception:
+        print(type(exception))  # the exception instance
+        print(exception.args)  # arguments stored in .args
+        print(exception)  # __str__ allows args to be printed directly,
+        x, y = exception.args  # unpack args
+        print('x =', x)
+        print('y =', y)
+
+
+def parsesequencelines(samtoolsdict: dict, sequencelinesinsamtoolsheader: list[str],
                        sequencenamesinsamtoolsheader: dict[str, str], md5checksumdictfilename: str) -> Union[
     tuple[bool, Exception], tuple[bool, dict[str, str]]]:
-    currentseqid = 0
+    """
 
+    :rtype: object
+    :type sequencelinesinsamtoolsheader: object
+    """
+    sequencedict: dict[str, list] = {"SN": [], "LN": [], "AH": [], "AS": [], "DS": [], "M5": [], "SP": [], "TP": [],
+                                     "AN": []}
     for entry in sequencelinesinsamtoolsheader:
-        print(entry, "\t", " sequencelines ")
         fields = entry.strip().split("\t")
         for val in fields:
-            print(val, " fields ")
             if ':' in val and not val.startswith("UR"):
                 (field, value) = val.split(':')
-                print("Field ", field, " VALUE ", value)
                 if field in ["SN", "LN", "AH", "AS", "AN", "DS", "M5", "SP", "TP"]:
                     if field == "SN" and value in sequencenamesinsamtoolsheader.keys():
                         return False, Exception(
@@ -140,34 +141,32 @@ def parsesequencelines(samtoolsdict: dict[str, str], sequencelinesinsamtoolshead
                     elif field == "AS" and value is None:
                         return False, Exception(
                             "AS / Assembly field is empty / not conforming to Samtools specifications")
-                    # elif field == "UR" and not value.startswith("http"):
-                    #    return False, Exception(
-                    #    "UR field is empty / not conforming to Samtools specifications")
                     elif field == "SP" and value is None:
                         return False, Exception("SP field / species field in Sam file not as per specification")
                     elif field == "TP" and value not in ['linear', 'circular']:
                         return False, Exception("Topology field in SAM file not as per specification")
                     elif field == "DS" and value is None:
                         return False, Exception(" DS / Description field in SAMTOOLS file not as per description")
+                    elif field == "SN":
+                        sequencenamesinsamtoolsheader[value] = ""
                     elif field == "M5" and (
                             md5.isValidMD5(value) is False or md5.checkIfValidMD5(value,
                                                                                   md5checksumdictfilename) is False):
-                        print("Inside false ")
                         return False, Exception(
                             " MD5 Checksum invalid ")
                     elif field in ["SN", "LN", "AS", "M5"]:
-                        print("Inside assignment clause ")
-                        # sequencenamesinsamtoolsheader[value] = ""
-                        # currentseqid = value
+                        sequencedict[field].append(value)
                 else:
                     return False, Exception('Invalid fields in Header field in SAM file')
             else:
-                print("Found UR field")
                 continue
-        print("before returning from function ")
+
+    #samtoolsdict['@SQ'].append(sequencedict)
+    print("after assigning dict / parse sequence fields in samtools file ")
+    return True, samtoolsdict
 
 
-def parseheaderlines(samtoolsdict: dict[str, str], headerlines: list[str],
+def parseheaderlines(samtoolsdict: dict, headerlines: list[str],
                      formatinheaderlineversionpattern: Pattern[str],
                      subsortingalignmentspattern: Pattern[str]) -> Union[
     tuple[bool, Exception], tuple[bool, dict[str, str]]]:
@@ -180,33 +179,33 @@ def parseheaderlines(samtoolsdict: dict[str, str], headerlines: list[str],
     :param subsortingalignmentspattern:
     :return:
     """
-    print(headerlines.strip(), " Inside parse header lines function ")
-    headerlinesarr = headerlines.strip().split("\t")
-    headerdict = {"VN": [], "SO": [], "SS": [], "GO": []}
+    headerdict: dict[str, list] = {"VN": [], "SO": [], "SS": [], "GO": []}
 
-    print(headerlines)
-    for entry in headerlinesarr:
-        print(entry)
-        if ':' in entry:
-            (field, value) = entry.split(':')
-        else:
-            continue
-        if field in ["VN", "SO", "SS", "GO"]:
-            print(field, "\t", value, "\t", formatinheaderlineversionpattern)
-            if (
-                    field == "VN" and formatinheaderlineversionpattern.match(value)
-                    or field == "SO" and value in ['unknown', 'unsorted', 'queryname', 'coordinate']
-                    or field == "GO" and value in ['none', 'query', 'reference']
-                    or field == "SS" and subsortingalignmentspattern.match(value)
-            ):
-                print("field ", field, " value ", value)
-                headerdict[field].append(value)
-                print("After assigning value ")
-        else:
-            return False, Exception(" Invalid header field in samtools: ", field, " value ", value)
+    for line in headerlines:
+        # print(headerlines)
+        headerlinesdict = line.split("\t")
+        for entry in headerlinesdict:
+            # print(entry)
+            if ':' in entry:
+                (field, value) = entry.split(':')
+            else:
+                continue
+            if field in ["VN", "SO", "SS", "GO"]:
+                print(field, "\t", value, "\t", formatinheaderlineversionpattern)
+                if (
+                        field == "VN" and formatinheaderlineversionpattern.match(value)
+                        or field == "SO" and value in ['unknown', 'unsorted', 'queryname', 'coordinate']
+                        or field == "GO" and value in ['none', 'query', 'reference']
+                        or field == "SS" and subsortingalignmentspattern.match(value)
+                ):
+                    print("field ", field, " value ", value)
+                    headerdict[field].append(value)
+                    print("After assigning value ")
+            else:
+                return False, Exception(" Invalid header field in samtools: ", field, " value ", value)
 
     samtoolsdict['@HD'].append(headerdict)
-    print("Before returning samtoolsdict")
+    print("Before returning samtoolsdict ")
     return True, samtoolsdict
 
 
@@ -227,8 +226,8 @@ def parseseqalignlines(samtoolsdict: dict[str, str], sequencelinesinsamtoolshead
         # check if position is beyond length of chromosome
         elif (positiononchromosome == 0) or (positiononchromosome > chrlengths.get(chromosomenumber)):
             return False, Exception("Invalid position match on chromosome")
-        # dna bases read earlier ; check if reference base matches one of the dna bases
-        # else raise exception
+            # dna bases read earlier ; check if reference base matches one of the dna bases
+            # else raise exception
         elif set(referencebase.split()).difference(dnabases.split()) > 0:
             return False, Exception("Invalid reference base")
         elif numberofreads < 0 or min_depth < 0 or numberofreads < min_depth:
@@ -320,7 +319,7 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
             # min depth calculated for reads
             # QNAME, FLAG, RNAME, POS, MAPQ (displayed numerically), RNEXT, PNEXT.
             # Sanity check on samtools mpileup output file
-            print(line)
+            # print(line)
             # There can be only one HD Line which must conform to specified regex
             if line.startswith('@HD') and (
                     not re.match(headerseqreadgroupprogramlinepattern, line) or filelevelmetadata is True):
@@ -338,7 +337,6 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
                                                                         subsortingalignmentspattern)
                 print("After parsing header lines ", validityofsamtoolsfile)
             elif line.startswith('@SQ') and re.match(headerseqreadgroupprogramlinepattern, line):
-                print("Inside SEQ line ", line)
                 sequencenamesinsamtoolsheader: dict[str, str] = {}
                 sequencelinesinsamtoolsheader.append(line)
             elif line.startswith('@SQ') and not re.match(headerseqreadgroupprogramlinepattern, line):
@@ -357,18 +355,24 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
                     (field, value) = entry.split(':')
                     samtoolsdict['@CO'][field] = value
             else:  # splitting sequence lines
-                print("before splitting line ", line)
                 sequencelinesinsamtoolsfile.append(line)
 
         print("Before parsing sequence lines ")
         if len(sequencelinesinsamtoolsheader) > 0:
-            parsesequencelines(samtoolsdict, sequencelinesinsamtoolsheader,
-                               sequencenamesinsamtoolsheader, md5checksumdict)
-            print("After parsing sequence lines")
+            validityofsamtoolsfile, samtoolsdict = parsesequencelines(samtoolsdict, sequencelinesinsamtoolsheader,
+                                                                      sequencenamesinsamtoolsheader, md5checksumdict)
+        print("After parsing sequence lines")
         if len(readgrouplinesinsamtoolsheader) > 0:
             print("Before read group lines in samtools header ")
-            parsereadgrouplines(samtoolsdict, readgrouplinesinsamtoolsheader, rgidentifierinsamtoolsheader)
+            validityofsamtoolsfile, samtoolsdict = parsereadgrouplines(samtoolsdict, readgrouplinesinsamtoolsheader,
+                                                                       rgidentifierinsamtoolsheader)
             print("After parsing read group lines")
+        if len(pggrouplinesinsamtoolsheader) > 0:
+            print("Before parsing PG Group lines in samtools header ")
+            validityofsasmtoolsfile, samtoolsdict = parsepggrouplines(samtoolsdict, pggrouplinesinsamtoolsheader,
+                                                                      pgidentifierinsamtoolsheader)
+            print("After parsing PG Group Lines in samtools header")
+
     except Exception as exception:
         print(type(exception))  # the exception instance
         print(exception.args)  # arguments stored in .args
