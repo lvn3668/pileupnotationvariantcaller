@@ -17,7 +17,7 @@ import md5checksumgeneratorfordnabases.md5checksumgeneratorfordnasequences as md
 # 19:20389:F:275+18M2D19M	147	1	17919	0	18M2D19M	=	17644	-314	GTAGTACCAACTGTAAGTCCTTATCTTCATACTTTGT	;44999;499<8<8<<<8<<><<<<><7<;<<<>><<	XT:A:R	NM:i:2	SM:i:0	AM:i:0	X0:i:4	X1:i:0	XM:i:0	XO:i:1	XG:i:2	MD:Z:18^CA19
 # 9:21597+10M2I25M:R:-209	83	1	21678	0	8M2I27M	=	21469	-244	CACCACATCACATATACCAAGCCTGGCTGTGTCTTCT	<;9<<5><<<<><<<>><<><>><9>><>>>9>>><>	XT:A:R	NM:i:2	SM:i:0	AM:i:0	X0:i:5	X1:i:0	XM:i:0	XO:i:1	XG:i:2	MD:Z:35
 
-def parsepggrouplines(samtoolsdict: dict[str, str], pggrouplinesinsamtoolsheader: list[str],
+def parsepggrouplines(samtoolsinfo: list[dict], pggrouplinesinsamtoolsheader: list[str],
                       pgidentifierinsamtoolsheader: dict[str, str]) -> object:
     """
     :param samtoolsdict:
@@ -31,7 +31,11 @@ def parsepggrouplines(samtoolsdict: dict[str, str], pggrouplinesinsamtoolsheader
             print(pggrouplinesinsamtoolsheader)
             pggrouplines: list[str] = entry.split('\t')
             for entry in pggrouplines:
-                (field, value) = entry.split(':')
+                print(entry)
+                if ":" in entry:
+                    (field, value) = entry.split(':')
+                else:
+                    continue
                 if field in ["ID", "PN", "CL", "PP", "DS", "VN"]:
                     if (field == "ID" and value in pgidentifierinsamtoolsheader.keys()
                             or (field in ["CL", "DS", "VN", "PN", "ID"] and value is None)):
@@ -43,11 +47,13 @@ def parsepggrouplines(samtoolsdict: dict[str, str], pggrouplinesinsamtoolsheader
                     elif field == "ID":
                         pgidentifierinsamtoolsheader[value] = ""
                         pggroupdict[field].append(value)
-                        currentpgid = value
                 else:
-                    return False, Exception('Invalid fields in Header field in SAM file')
-        samtoolsdict['@PG'].append(pggroupdict)
-        return True, samtoolsdict
+                    return False
+
+        print("Assigning dict ", type(pggroupdict), " ", type(samtoolsinfo), " type ", type(pggrouplinesinsamtoolsheader))
+        samtoolsinfo.append(pggroupdict)
+        print("After assigning dict ")
+        return True, samtoolsinfo
     except Exception as exception:
         print(type(exception))  # the exception instance
         print(exception.args)  # arguments stored in .args
@@ -57,7 +63,7 @@ def parsepggrouplines(samtoolsdict: dict[str, str], pggrouplinesinsamtoolsheader
         print('y =', y)
 
 
-def parsereadgrouplines(samtoolsdict: dict[str, str], readgrouplinesinsamtoolsheader: list[str],
+def parsereadgrouplines(samtoolsinfo: list[dict], readgrouplinesinsamtoolsheader: list[str],
                         rgidentifierinsamtoolsheader: dict[str, str]):
     try:
         currentrgid = 0
@@ -101,8 +107,8 @@ def parsereadgrouplines(samtoolsdict: dict[str, str], readgrouplinesinsamtoolshe
                 else:
                     return False, Exception('Invalid fields in Header field in SAM file')
 
-        samtoolsdict['@RG'].append(readgroupdict)
-        return True, samtoolsdict
+        samtoolsinfo.append(readgroupdict)
+        return True, samtoolsinfo
     except Exception as exception:
         print(type(exception))  # the exception instance
         print(exception.args)  # arguments stored in .args
@@ -112,11 +118,12 @@ def parsereadgrouplines(samtoolsdict: dict[str, str], readgrouplinesinsamtoolshe
         print('y =', y)
 
 
-def parsesequencelines(samtoolsdict: dict, sequencelinesinsamtoolsheader: list[str],
+def parsesequencelines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: list[str],
                        sequencenamesinsamtoolsheader: dict[str, str], md5checksumdictfilename: str) -> Union[
-    tuple[bool, Exception], tuple[bool, dict[str, str]]]:
+    tuple[bool, Exception], tuple[bool, dict[str, list]]]:
     """
 
+    :param samtoolsdict:
     :rtype: object
     :type sequencelinesinsamtoolsheader: object
     """
@@ -161,15 +168,14 @@ def parsesequencelines(samtoolsdict: dict, sequencelinesinsamtoolsheader: list[s
             else:
                 continue
 
-    #samtoolsdict['@SQ'].append(sequencedict)
+    samtoolsinfo.append(sequencedict)
     print("after assigning dict / parse sequence fields in samtools file ")
-    return True, samtoolsdict
+    return True, sequencedict
 
 
-def parseheaderlines(samtoolsdict: dict, headerlines: list[str],
+def parseheaderlines(samtoolsinfo: list[dict], headerlines: list[str],
                      formatinheaderlineversionpattern: Pattern[str],
-                     subsortingalignmentspattern: Pattern[str]) -> Union[
-    tuple[bool, Exception], tuple[bool, dict[str, str]]]:
+                     subsortingalignmentspattern: Pattern[str]):
     """
 
     :type samtoolsdict: object
@@ -179,20 +185,19 @@ def parseheaderlines(samtoolsdict: dict, headerlines: list[str],
     :param subsortingalignmentspattern:
     :return:
     """
+    print("type of samtools info object ", type(samtoolsinfo))
     headerdict: dict[str, list] = {"VN": [], "SO": [], "SS": [], "GO": []}
-
-    for line in headerlines:
-        # print(headerlines)
-        headerlinesdict = line.split("\t")
-        for entry in headerlinesdict:
-            # print(entry)
-            if ':' in entry:
-                (field, value) = entry.split(':')
-            else:
-                continue
-            if field in ["VN", "SO", "SS", "GO"]:
-                print(field, "\t", value, "\t", formatinheaderlineversionpattern)
-                if (
+    listofheadervals: list[str] = headerlines.strip().split("\t")
+    print(headerlines, " header lines ")
+    for line in listofheadervals:
+        print(line)
+        if ':' in line:
+            (field, value) = line.split(':')
+        else:
+            continue
+        if field in ["VN", "SO", "SS", "GO"]:
+            print(field, "\t", value, "\t", formatinheaderlineversionpattern)
+            if (
                         field == "VN" and formatinheaderlineversionpattern.match(value)
                         or field == "SO" and value in ['unknown', 'unsorted', 'queryname', 'coordinate']
                         or field == "GO" and value in ['none', 'query', 'reference']
@@ -202,14 +207,14 @@ def parseheaderlines(samtoolsdict: dict, headerlines: list[str],
                     headerdict[field].append(value)
                     print("After assigning value ")
             else:
-                return False, Exception(" Invalid header field in samtools: ", field, " value ", value)
+                return False
 
-    samtoolsdict['@HD'].append(headerdict)
+    samtoolsinfo.append(headerdict)
     print("Before returning samtoolsdict ")
-    return True, samtoolsdict
+    return True, samtoolsinfo
 
 
-def parseseqalignlines(samtoolsdict: dict[str, str], sequencelinesinsamtoolsheader: list[str],
+def parseseqalignlines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: list[str],
                        sequencenamesinsamtoolsheader: dict[str, str], md5checksumdict: dict[str, str],
                        chrlengths: dict[str, str], min_depth: int, dnabases: str,
                        pileupnotation: str, qnamepattern: Pattern, cigarpattern: Pattern, seqpattern: Pattern,
@@ -304,8 +309,8 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
         cigarpattern: Pattern[str] = re.compile(r"\*|([0-9]+[MIDNSHIPX=1])+")
         seqpattern: Pattern[str] = re.compile(r"\*|[A-Za-z=.]+")
         qualpattern: Pattern[str] = re.compile(r"[!-~]+")
-        samtoolsdict: dict[str, str] = {"@HD": [], "@SQ": [], "@RG": [], "@PG": []}
-
+        #samtoolsdict: dict[str, str] = {"@HD": {}, "@SQ": {}, "@RG": {}, "@PG": {}}
+        samtoolsinfo: list[dict[str, str]] = []
         rgidentifierinsamtoolsheader: dict[str, str] = {}
         pgidentifierinsamtoolsheader: dict[str, str] = {}
         validityofsamtoolsfile: bool
@@ -332,10 +337,12 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
                 # sub sorting pattern can only be of format (type of sorting ):()
                 subsortingalignmentspattern: Pattern[str] = re.compile(
                     r"(coordinate|queryname|unsorted)(:[A-Za-z0-9_-]+)+")
-                validityofsamtoolsfile, samtoolsdict = parseheaderlines(samtoolsdict, line,
+                print("type for samtools info ", type(samtoolsinfo))
+                validityofsamtoolsfile, samtoolsinfo = parseheaderlines(samtoolsinfo, line,
                                                                         formatinheaderlineversionpattern,
                                                                         subsortingalignmentspattern)
-                print("After parsing header lines ", validityofsamtoolsfile)
+                print("After parsing header lines ", validityofsamtoolsfile, "\t", type(samtoolsinfo))
+                #samtoolsinfo.append(headerdict)
             elif line.startswith('@SQ') and re.match(headerseqreadgroupprogramlinepattern, line):
                 sequencenamesinsamtoolsheader: dict[str, str] = {}
                 sequencelinesinsamtoolsheader.append(line)
@@ -353,25 +360,30 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
                     '\t')
                 for entry in commentgrouplines:
                     (field, value) = entry.split(':')
-                    samtoolsdict['@CO'][field] = value
+                    #samtoolsdict['@CO'][field] = value
             else:  # splitting sequence lines
                 sequencelinesinsamtoolsfile.append(line)
 
         print("Before parsing sequence lines ")
         if len(sequencelinesinsamtoolsheader) > 0:
-            validityofsamtoolsfile, samtoolsdict = parsesequencelines(samtoolsdict, sequencelinesinsamtoolsheader,
+            validityofsamtoolsfile, sequencedict = parsesequencelines(samtoolsinfo, sequencelinesinsamtoolsheader,
                                                                       sequencenamesinsamtoolsheader, md5checksumdict)
+            if validityofsamtoolsfile:
+                print("Before assigning dict returned from parse sequence lines ")
+                #samtoolsdict["@SQ"] = sequencedict
+                samtoolsinfo.append(sequencedict)
+                print("After assigning dict ", type(sequencedict), " type for samtools info ", type(samtoolsinfo))
         print("After parsing sequence lines")
         if len(readgrouplinesinsamtoolsheader) > 0:
             print("Before read group lines in samtools header ")
-            validityofsamtoolsfile, samtoolsdict = parsereadgrouplines(samtoolsdict, readgrouplinesinsamtoolsheader,
+            validityofsamtoolsfile, samtoolsdict = parsereadgrouplines(samtoolsinfo, readgrouplinesinsamtoolsheader,
                                                                        rgidentifierinsamtoolsheader)
-            print("After parsing read group lines")
+            print("After parsing read group lines ", type(samtoolsinfo))
         if len(pggrouplinesinsamtoolsheader) > 0:
             print("Before parsing PG Group lines in samtools header ")
-            validityofsasmtoolsfile, samtoolsdict = parsepggrouplines(samtoolsdict, pggrouplinesinsamtoolsheader,
+            validityofsasmtoolsfile, samtoolsdict = parsepggrouplines(samtoolsinfo, pggrouplinesinsamtoolsheader,
                                                                       pgidentifierinsamtoolsheader)
-            print("After parsing PG Group Lines in samtools header")
+            print("After parsing PG Group Lines in samtools header ", type(samtoolsinfo))
 
     except Exception as exception:
         print(type(exception))  # the exception instance
