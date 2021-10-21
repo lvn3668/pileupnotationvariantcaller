@@ -29,7 +29,6 @@ def parsepggrouplines(samtoolsinfo: list[dict], pggrouplinesinsamtoolsheader: li
         for entry in pggrouplinesinsamtoolsheader:
             pggrouplines: list[str] = entry.split('\t')
             for entry in pggrouplines:
-                print(entry)
                 if ":" in entry:
                     (field, value) = entry.split(':')
                 else:
@@ -190,15 +189,11 @@ def parseseqalignlines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: 
     :param qualpattern: 
     :return: 
     """
-    print("Inside seq align function ")
-
-    print("dna bases ", dnabases.lower())
     for line in sequencelinesinsamtoolsheader:
-        print(line)
         (title, positiononchromosome, referencebase, numberofreads, readstrings, qual) = line.split('\t')
         # assign a random chromosome number
         # Assume human and not assigning Sex chromosomes
-        randomnum = random.random()
+        randomnum: float = random.random()
 
         if randomnum < 0.5:
             chromosomenumber = random.randint(1, 23)
@@ -212,8 +207,10 @@ def parseseqalignlines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: 
             print(" chrlengths type ", type(chrlengths), " chromosome no ", chromosomenumber, " keys in dict ",
                   chrlengths.keys(), " length of chromosome ", chrlengths.get(chromosomenumber),
                   " position on chromosome ", positiononchromosome)
-        print("chromosome nummber" , chromosomenumber, " position on chromosome ", positiononchromosome, " size of chromosome ", chrlengths.get(chromosomenumber))
-        print("reference base ", referencebase.lower())
+        print("chromosome nummber " , chromosomenumber, " position on chromosome ", positiononchromosome, " size of chromosome ", chrlengths.get(chromosomenumber))
+        print("reference base ", referencebase.lower().split(), " type of object ", type(referencebase.lower().split()))
+        print("dna bases ", dnabases.lower().split())
+        print(" Set ", set(''.join(referencebase.lower().split())) - set(dnabases.lower().split()))
         if title is None:
             return False, None
         elif chromosomenumber not in [1, 2, 3, 4, 5, 6, 7,8,9,10, 11,12,13,14,15,16,17,18,19,20, 21,22,23,'X','Y']:
@@ -223,7 +220,7 @@ def parseseqalignlines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: 
             return False, Exception("Invalid position match on chromosome ")
             # dna bases read earlier ; check if reference base matches one of the dna bases
             # else raise exception
-        elif set(''.join(referencebase.lower().split()).difference(dnabases.lower().split())) > 0:
+        elif set(''.join(referencebase.lower().split())) - set(dnabases.lower().split()) > 0:
             return False, Exception("Invalid reference base")
         elif numberofreads < 0 or min_depth < 0 or numberofreads < min_depth:
             return False, Exception("Insufficient read depth; Minimum specified read depth ", min_depth)
@@ -233,7 +230,6 @@ def parseseqalignlines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: 
         elif set(readstrings.split()).difference(pileupnotation.split()) > 0:
             return False, Exception("read base strings contain invalid character")
         elif qname is None or not qnamepattern.match(qname):
-            print("Inside qname None ")
             return False, Exception("Query template Name absent; bam file in invalid format")
         elif flag is None or flag not in [0, 2 ^ 16 - 1]:
             return False, Exception("Bitwise Flag absent or not matching SAM Specifications")
@@ -257,7 +253,6 @@ def parseseqalignlines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: 
         elif QUAL is None or ord(QUAL) - 33 < 33 or not qualpattern.match(QUAL) or ord(QUAL) - 33 == 255:
             return False, Exception("Sequence quality invalid or not as per SAM Specifications ")
         else:
-            print("Inside else")
             return True
 
 
@@ -353,6 +348,7 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
             else:  # splitting sequence lines
                 sequencelinesinsamtoolsfile.append(line)
 
+        validityofsamtoolsfile: bool
         if len(sequencelinesinsamtoolsheader) > 0:
             validityofsamtoolsfile, samtoolsinfo = parsesequencelines(samtoolsinfo, sequencelinesinsamtoolsheader,
                                                                       sequencenamesinsamtoolsheader, md5checksumdict)
@@ -366,8 +362,6 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
             samtoolsinfo.append(commentsdict)
 
         if len(sequencelinesinsamtoolsheader) > 0:
-            print("Inside seq align lines ", type(chrlengths))
-            print("DNA bases ", dnabases.lower())
             parseseqalignlines(samtoolsinfo, sequencelinesinsamtoolsfile,
                                chrlengths, min_depth, dnabases,
                                pileupnotation, qnamepattern, cigarpattern, seqpattern,

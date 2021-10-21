@@ -1,4 +1,3 @@
-import os
 import urllib
 
 import tensorflow_decision_forests as tfdf
@@ -6,27 +5,21 @@ import tensorflow_decision_forests as tfdf
 import os
 import numpy as np
 import pandas as pd
-import tensorflow as tf
-import math
 
 try:
-  from wurlitzer import sys_pipes
-except:
-  from colabtools import CaptureLog as sys_pipes
+    from wurlitzer import sys_pipes
+except Exception as exp:
+    import colabtools
 
-from IPython.core.magic import register_line_magic
-from IPython.display import Javascript
 
 def split_dataset(dataset, test_ratio=0.30):
-  """Splits a panda dataframe in two."""
-  test_indices = np.random.rand(len(dataset)) < test_ratio
-  return dataset[~test_indices], dataset[test_indices]
-
+    """Splits a panda dataframe in two."""
+    test_indices = np.random.rand(len(dataset)) < test_ratio
+    return dataset[~test_indices], dataset[test_indices]
 
 
 def findgenesofsignificance():
-    ## Download the dataset
-    #!wget - q https: // storage.googleapis.com / download.tensorflow.org / data / palmer_penguins / penguins.csv - O / tmp / penguins.csv
+    # !wget - q https: // storage.googleapis.com / download.tensorflow.org / data / palmer_penguins / penguins.csv - O / tmp / penguins.csv
 
     # Load a dataset into a Pandas Dataframe.
     dataset_df = pd.read_csv("/data/MicroarrayExpression.csv")
@@ -66,12 +59,14 @@ def findgenesofsignificance():
     model_1.make_inspector().training_logs()
     model_1.make_inspector().export_to_tensorboard("/tmp/tensorboard_logs")
 
-def get_assembly_summary(id: str):
+
+def get_assembly_summary(identifier: str):
     """Get esummary for an entrez id"""
     from Bio import Entrez
-    esummary_handle = Entrez.esummary(db="assembly", id=id, report="full")
+    esummary_handle = Entrez.esummary(db="assembly", id=identifier, report="full")
     esummary_record = Entrez.read(esummary_handle)
     return esummary_record
+
 
 def get_assemblies(term, download=True, path='assemblies'):
     """Download genbank assemblies for a given search term.
@@ -82,27 +77,25 @@ def get_assemblies(term, download=True, path='assemblies'):
     """
 
     from Bio import Entrez
-    #provide your own mail here
+    # provide your own mail here
     Entrez.email = "lalitha.viswanathan79@gmail.com"
     handle = Entrez.esearch(db="assembly", term=term, retmax='200')
     record = Entrez.read(handle)
     ids = record['IdList']
-    print (f'found {len(ids)} ids')
+    print(f'found {len(ids)} ids')
     links = []
-    for id in ids:
-        #get summary
-        summary = get_assembly_summary(id)
-        #get ftp link
+    for ident in ids:
+        # get summary
+        summary = get_assembly_summary(ident)
+        # get ftp link
         url = summary['DocumentSummarySet']['DocumentSummary'][0]['FtpPath_RefSeq']
         if url == '':
             continue
         label = os.path.basename(url)
-        #get the fasta link - change this to get other formats
-        link = os.path.join(url,label+'_genomic.fna.gz')
-        print (link)
+        link = os.path.join(url, label + '_genomic.fna.gz')
+        print(link)
         links.append(link)
-        if download == True:
-            #download link
+        if download:
             urllib.request.urlretrieve(link, f'{label}.fna.gz')
 
     return links

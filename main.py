@@ -123,7 +123,7 @@ def call_variants(pileupreads: list[str], min_depth: int) -> str:
                         referenceskip[chromosomenumber][positiononchromosome][readnumber] = 0
                     # reference skip due to CIGAR string on reverse strand
                     elif readstrings[readnumber] == '<':
-                        referenceskip[chromosomelengthreader][positiononchromosome][readnumber] = 1
+                        referenceskip[chromosomenumber][positiononchromosome][readnumber] = 1
                     # read stops at this position
                     # 1 based indexing
                     # & , %33 (????)
@@ -172,8 +172,6 @@ def call_variants(pileupreads: list[str], min_depth: int) -> str:
 #    :param name:
     """
     # Use a breakpoint in the code line below to debug your script.
-
-
 #   print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
 
 
@@ -204,7 +202,7 @@ if __name__ == '__main__':
         # Keep this line:
         (validityofassemblymetadatafile, organism, assembly, chrLengthshash) = chrlengthreader.readchromosomelengths(
             ''.join(args.assemblymetadata))
-        print("Inside main ", type(chrLengthshash))
+
         if validityofassemblymetadatafile:
             dnabases: list[str]
             validityofreferencefile, reference, dnabases = refgenome.referencegenomeparser(''.join(args.referencefastafile),
