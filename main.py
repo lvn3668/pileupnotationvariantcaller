@@ -201,16 +201,15 @@ if __name__ == '__main__':
         assembly: str
         chrLengthshash: dict[str, str]
         listofpileupreads: list[str]
-        print(args.referencefastafile)
-        print(args.assemblymetadata)
         # Keep this line:
-        (validityofassemblymetadatafile, chrLengthshash, organism, assembly) = chrlengthreader.readchromosomelengths(
+        (validityofassemblymetadatafile, organism, assembly, chrLengthshash) = chrlengthreader.readchromosomelengths(
             ''.join(args.assemblymetadata))
+        print("Inside main ", type(chrLengthshash))
         if validityofassemblymetadatafile:
-            print("Reference file ", ''.join(args.referencefastafile))
             dnabases: list[str]
             validityofreferencefile, reference, dnabases = refgenome.referencegenomeparser(''.join(args.referencefastafile),
                                                                                  ''.join(args.dnabasesfilename))
+
             if validityofreferencefile:
                 # find maximum read length and generate md5 checksums till that length
                 md5.randomMD5HashForDNAsequencegenerator(args.maxreadlength[0], "C:\\Users\\visu4\\PycharmProjects\\variantcallingfrompileup\\data\\md5checksum.txt")
@@ -218,16 +217,13 @@ if __name__ == '__main__':
                 listofpileupreads: list[str]
                 pileupnotationpattern: str
                 validityofpileupreadsfile, listofpileupreads, pileupnotationpattern = pileup.pileupnotationreader(args.pileupformat, args.pileupreads)
-                print(" After reading in pileup lines ")
                 # if pileupreads are in right format, check for data integrity / samtools checker
                 if validityofpileupreadsfile:
-                    print("Calling samtools validity checker on file ")
                     smtools.samtools_output_checker(listofpileupreads,
                                                     args.minreaddepth,
                                                     chrLengthshash, ''.join(dnabases),
                             pileupnotationpattern, "C:\\Users\\visu4\\PycharmProjects\\variantcallingfrompileup\\data\\md5checksum.txt")
         # call_set = call_variants(test_pileup, reference, 5)
-
         # TO DO: print the ref positions (1-10), and the variant call at each position
         # (Bonus: can you use list comprehension to print the results with one line of code?)
         # print(call_set)

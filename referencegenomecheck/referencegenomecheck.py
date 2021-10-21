@@ -25,18 +25,16 @@ def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str) -> tupl
             print('File ', dnabasesfilename, ' is not empty')
             dnabasesfilehandle: TextIO = open(dnabasesfilename, 'r')
             linesindnabasesfile: list[str] = dnabasesfilehandle.readlines()
-            print(" Number of lines in ", dnabasesfilename, " is ", len(linesindnabasesfile))
 
             # Strips the newline character
             for line in linesindnabasesfile:
+
                 if len(line.strip()) > 1:
                     linesindnabasesfile.remove(line)
                     raise Exception("DNA Bases file not in right format; One base per line")
             dnabasesfilehandle.close()
         ### Read dnabases file
-
         pattern = ''.join(linesindnabasesfile)
-
         ### Read reference genome file
         if os.stat(refgenomefilename).st_size == 0:
             print(refgenomefilename, ' File is empty')
@@ -47,7 +45,6 @@ def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str) -> tupl
             linesindnabasesfile: list[str] = refgenomefilehandle.readlines()
 
             for line in linesindnabasesfile:
-
                 if re.search(r'['+pattern+']', line.strip()):
                     continue
                 elif line.startswith('>'):
@@ -55,12 +52,13 @@ def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str) -> tupl
 
             reference = ''.join(linesindnabasesfile).replace('\n', '')
             refgenomefilehandle.close()
-            if len(reference) > 0 and len(linesindnabasesfile) > 0:
-                print("Inside true ")
-                return True, reference, linesindnabasesfile
+
+            # reference is reference genome
+            # pattern is allowaed characters in reference genome file
+            if len(reference) > 0 and len(pattern) > 0:
+                return True, reference, pattern
             else:
-                print("Inside false ")
-                return False, reference, linesindnabasesfile
+                return False, reference, pattern
 
     except Exception as exception:
         print(type(exception))  # the exception instance

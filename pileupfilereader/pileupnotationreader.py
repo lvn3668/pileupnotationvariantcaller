@@ -47,8 +47,6 @@ def pileupnotationreader(pileupnotationfilename: str, pileupreadsfilename: str) 
     :param pileupnotationfilename:
     """
     try:
-        print("Pileup notation filename ", pileupnotationfilename)
-        print("Pileup reads filename ", pileupreadsfilename)
         # check if size of file is 0
         if os.stat(''.join(pileupnotationfilename)).st_size == 0:
             print(pileupnotationfilename, ' File is empty')
@@ -75,7 +73,6 @@ def pileupnotationreader(pileupnotationfilename: str, pileupreadsfilename: str) 
                 for line in pileuplines:
                     if line is None:
                         pileuplines.remove(line)
-
                 pileupreadsfilehandle.close()
         return True, pileuplines, pileupnotationpattern
     except Exception as exception:

@@ -1,9 +1,7 @@
 import hashlib
 import re
 from random import choice
-import io
-from typing import TextIO, BinaryIO
-import psutil
+from typing import TextIO
 import gc
 from pathlib import Path
 
@@ -18,8 +16,6 @@ from pathlib import Path
 # is provided
 
 def isValidMD5(string: str) -> bool:
-    print("Inside is valid md5")
-    return True
     if re.match(r"^[a-fA-F0-9]{32}$", string):
         return True
     else:
@@ -39,10 +35,7 @@ def weightedchoice(items: list[tuple[str, int]]) -> object:  # this doesn't requ
 # Key is MD5 Hash and value is DNA String
 # Illumina: 2 x 300 / 2x 150
 
-def randomMD5HashForDNAsequencegenerator(maxlength: int, filename: str)-> str:
-    print('RAM memory % used:', psutil.virtual_memory()[2])
-    print("Inside random md5 hash generator")
-    print("Default buffer size ", io.DEFAULT_BUFFER_SIZE)
+def randomMD5HashForDNAsequencegenerator(maxlength: int, filename: str) -> str:
     # TO DO: Enum max read length and sequencers based on PL field in SAMTOOLS
     # TO DO: Parse PL and classify as short read / long read and throw error on max read length field
     if maxlength < 0 or maxlength < 10:
@@ -50,7 +43,6 @@ def randomMD5HashForDNAsequencegenerator(maxlength: int, filename: str)-> str:
 
     fname: TextIO = open(filename, "w", 512)
     for length in range(1, maxlength):
-        print("Random DNA Sequence of length ", length)
         pools = [tuple(pool) for pool in ['at', 'gc']] * length
         result = [[]]
         for pool in pools:
@@ -64,24 +56,20 @@ def randomMD5HashForDNAsequencegenerator(maxlength: int, filename: str)-> str:
         del result
         gc.collect()
         # Getting % usage of virtual_memory ( 3rd field)
-        print('RAM memory % used:', psutil.virtual_memory()[2])
     fname.close()
     return fname
 
 
 def checkIfValidMD5(md5: str, filename: str) -> bool:
     """
-
     :param md5:
     :type dictofmd5hashes: object
     """
-
     # Hardcode to return True
     print("Inside check if valid md5")
     return True
     print(filename)
     data = Path(filename).read_bytes()
-    print("After reading data from md5checkum file ")
     if md5 in data.decode():
         print("Inside true")
         return True
