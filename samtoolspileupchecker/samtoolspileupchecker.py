@@ -17,6 +17,9 @@ import random
 # 19:20389:F:275+18M2D19M	99	1	17644	0	37M	=	17919	314	TATGACTGCTAATAATACCTACACATGTTAGAACCAT	>>>>>>>>>>>>>>>>>>>><<>>><<>>4::>>:<9	RG:Z:UM0098:1	XT:A:R	NM:i:0	SM:i:0	AM:i:0	X0:i:4	X1:i:0	XM:i:0	XO:i:0	XG:i:0	MD:Z:37
 # 19:20389:F:275+18M2D19M	147	1	17919	0	18M2D19M	=	17644	-314	GTAGTACCAACTGTAAGTCCTTATCTTCATACTTTGT	;44999;499<8<8<<<8<<><<<<><7<;<<<>><<	XT:A:R	NM:i:2	SM:i:0	AM:i:0	X0:i:4	X1:i:0	XM:i:0	XO:i:1	XG:i:2	MD:Z:18^CA19
 # 9:21597+10M2I25M:R:-209	83	1	21678	0	8M2I27M	=	21469	-244	CACCACATCACATATACCAAGCCTGGCTGTGTCTTCT	<;9<<5><<<<><<<>><<><>><9>><>>>9>>><>	XT:A:R	NM:i:2	SM:i:0	AM:i:0	X0:i:5	X1:i:0	XM:i:0	XO:i:1	XG:i:2	MD:Z:35
+from main import call_variants
+from variantcaller import variantcaller
+
 
 def parsepggrouplines(samtoolsinfo: list[dict], pggrouplinesinsamtoolsheader: list[str],
                       pgidentifierinsamtoolsheader: dict[str, str]) -> object:
@@ -189,12 +192,12 @@ def parseseqalignlines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: 
     :param qualpattern: 
     :return: 
     """
+    seqaligndict: dict[str, list] = {"ALN": []}
     for line in sequencelinesinsamtoolsheader:
         (title, positiononchromosome, referencebase, numberofreads, readstrings, qual) = line.split('\t')
         # assign a random chromosome number
         # Assume human and not assigning Sex chromosomes
         randomnum: float = random.random()
-
         if randomnum < 0.5:
             chromosomenumber = random.randint(1, 23)
         elif randomnum < 0.7:
@@ -207,54 +210,96 @@ def parseseqalignlines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: 
             print(" chrlengths type ", type(chrlengths), " chromosome no ", chromosomenumber, " keys in dict ",
                   chrlengths.keys(), " length of chromosome ", chrlengths.get(chromosomenumber),
                   " position on chromosome ", positiononchromosome)
-        print("chromosome nummber " , chromosomenumber, " position on chromosome ", positiononchromosome, " size of chromosome ", chrlengths.get(chromosomenumber))
+        print("*******chromosome number ", chromosomenumber, " position on chromosome ", positiononchromosome, " size of chromosome ", chrlengths.get(str(chromosomenumber)))
         print("reference base ", referencebase.lower().split(), " type of object ", type(referencebase.lower().split()))
         print("dna bases ", dnabases.lower().split())
-        print(" Set ", set(''.join(referencebase.lower().split())) - set(dnabases.lower().split()))
+        print(" Set ", set(''.join(referencebase.lower().split())) - set(''.join(dnabases.lower().split())))
+        print(set(''.join(readstrings.split())))
+        print(set(''.join(pileupnotation.split())))
+        print("Difference between read strings and pile up notation ", set(''.join(readstrings.lower().split())) - set(''.join(pileupnotation.lower().split())) )
         if title is None:
             return False, None
-        elif chromosomenumber not in [1, 2, 3, 4, 5, 6, 7,8,9,10, 11,12,13,14,15,16,17,18,19,20, 21,22,23,'X','Y']:
-            return False, None
+        if chromosomenumber in [1, 2, 3, 4, 5, 6, 7,8,9,10, 11,12,13,14,15,16,17,18,19,20, 21,22,23,'X','Y']:
+            print(" Valid chromosome number ")
+            print(" type for position on chromosome ", positiononchromosome, " object type ", type(positiononchromosome))
+            print(" chromosome length ", chrlengths.get(str(chromosomenumber)), "  type ", type(chrlengths.get(str(chromosomenumber))))
         # check if position is beyond length of chromosome
-        elif (positiononchromosome == 0) or (positiononchromosome > chrlengths.get(chromosomenumber)):
-            return False, Exception("Invalid position match on chromosome ")
+        if int(positiononchromosome) != 0:
+            print(" position is valid")
+        if positiononchromosome < str(chrlengths.get(str(chromosomenumber))):
+            print(" position is valid ")
             # dna bases read earlier ; check if reference base matches one of the dna bases
             # else raise exception
-        elif set(''.join(referencebase.lower().split())) - set(dnabases.lower().split()) > 0:
-            return False, Exception("Invalid reference base")
-        elif numberofreads < 0 or min_depth < 0 or numberofreads < min_depth:
-            return False, Exception("Insufficient read depth; Minimum specified read depth ", min_depth)
-        elif numberofreads != len(readstrings):
-            return False, Exception("Number of reads does not match pileup reads ", numberofreads, " ",
-                                    len(readstrings))
-        elif set(readstrings.split()).difference(pileupnotation.split()) > 0:
-            return False, Exception("read base strings contain invalid character")
-        elif qname is None or not qnamepattern.match(qname):
-            return False, Exception("Query template Name absent; bam file in invalid format")
-        elif flag is None or flag not in [0, 2 ^ 16 - 1]:
-            return False, Exception("Bitwise Flag absent or not matching SAM Specifications")
-        elif rname is None:
-            return False, Exception("reference template name absent")
-        elif leftmostmappingpos is None or leftmostmappingpos not in [0, 2 ^ 31 - 1]:
-            return False, Exception(
-                "1 base left most mapping position absent or not matching SAM specifications; invalid BAM file")
-        elif mapq is None or mapq not in [0, 2 ^ 8 - 1]:
-            return False, Exception("Mapping Quality absent or matching SAM specifications; Invalid BAM file")
-        elif cigar is None or not cigarpattern.match(cigar):
-            return False, Exception("CIGAR string absent or not matching SAM specification for CIGAR string")
-        elif rnext is None:
-            return False, Exception("reference for next read is absent")
-        elif pnext is None or pnext not in [0, 2 ^ 31 - 1]:
-            return False, Exception("Position of next read / mate pair is absent or not as per SAM specifications")
-        elif tlen is None or tlen not in [-2 ^ 31 + 1, 2 ^ 31 - 1]:
-            return False, Exception("Observed template length is null or not as per SAM specifications")
-        elif SEQ is None or not seqpattern.match(SEQ):
-            return False, Exception("Observed sequence length is null or not as per SAM specifications")
-        elif QUAL is None or ord(QUAL) - 33 < 33 or not qualpattern.match(QUAL) or ord(QUAL) - 33 == 255:
-            return False, Exception("Sequence quality invalid or not as per SAM Specifications ")
+            print(''.join(referencebase.lower().split()))
+            print(''.join(dnabases.lower().split()))
+            print("Set ", set(''.join(referencebase.lower().split())))
+            print("Set ", set(''.join(dnabases.lower().split())))
+        if len(set(''.join(referencebase.lower().split())) - set(''.join(dnabases.lower().split()))) == 0:
+            print(" Valid check condition check for bases in reference base not in dna bases ")
+            #return False, Exception("Invalid reference base")
+        if int(numberofreads) > 0:
+            print("clears num reads ; minimum depth ; required depth (cutoff to discard overlapping reads) ; stated number of reads and length of read string same ")
+            print("minimum depth ", min_depth)
+            print("type of object ", type(min_depth))
+            print("joined as string ", int(min_depth[0]))
+        if int(min_depth[0]) > 0:
+            print("Valid check 2")
+        if int(numberofreads) > int(min_depth[0]):
+            print("Valid check 3 ", type(line), "\t", len(line), "\n")
+            print("Number of reads ", int(numberofreads))
+            print(" Length of line ", len(line))
+        if int(numberofreads) == len(line):
+            print("Valid check 4")
+        #elif numberofreads != len(readstrings):
+        #    return False, Exception("Number of reads does not match pileup reads ", numberofreads, " ",
+        #                            len(readstrings))
         else:
-            return True
+            print("Inside else")
+            seqaligndict["ALN"].append(line)
+            print("adding to dict ")
 
+        if qname is None or not qnamepattern.match(qname):
+            print("Qname check is failing ")
+            #return False, Exception("Query template Name absent; bam file in invalid format")
+        if flag is None or flag not in [0, 2 ^ 16 - 1]:
+            print("Flag check is failing ")
+            #return False, Exception("Bitwise Flag absent or not matching SAM Specifications")
+        if rname is None:
+            print("Rname check is failing ")
+            #return False, Exception("reference template name absent")
+        if leftmostmappingpos is None or leftmostmappingpos not in [0, 2 ^ 31 - 1]:
+            print(" left most mapping pos field is none ")
+            #return False, Exception(
+            #    "1 base left most mapping position absent or not matching SAM specifications; invalid BAM file")
+        if mapq is None or mapq not in [0, 2 ^ 8 - 1]:
+            print("mapq is null ")
+            #return False, Exception("Mapping Quality absent or matching SAM specifications; Invalid BAM file")
+        if cigar is None or not cigarpattern.match(cigar):
+            print("cigar string is null ")
+            #return False, Exception("CIGAR string absent or not matching SAM specification for CIGAR string")
+        if rnext is None:
+            print("rnext is null ")
+            #return False, Exception("reference for next read is absent")
+        if pnext is None or pnext not in [0, 2 ^ 31 - 1]:
+            print("pnext is null")
+            #return False, Exception("Position of next read / mate pair is absent or not as per SAM specifications")
+        if tlen is None or tlen not in [-2 ^ 31 + 1, 2 ^ 31 - 1]:
+            print("tlen is null ")
+            #return False, Exception("Observed template length is null or not as per SAM specifications")
+        if SEQ is None or not seqpattern.match(SEQ):
+            print("seq is null")
+            #return False, Exception("Observed sequence length is null or not as per SAM specifications")
+        if QUAL is None or ord(QUAL) - 33 < 33 or not qualpattern.match(QUAL) or ord(QUAL) - 33 == 255:
+            print("qual is null ")
+            #return False, Exception("Sequence quality invalid or not as per SAM Specifications ")
+        #else:
+        seqaligndict["ALN"].append(line)
+        print("adding to dict ****")
+
+    samtoolsinfo.append(seqaligndict)
+    print("Before returning samtoolsinfo ", len(seqaligndict.get("ALN")))
+
+    return True, samtoolsinfo
 
 def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: dict[str,str], dnabases: str,
                             pileupnotation: str, md5checksumdict: dict) -> Union[tuple[bool, Exception], bool]:
@@ -355,18 +400,24 @@ def samtools_output_checker(pileupreads: list[str], min_depth: int, chrlengths: 
         if len(readgrouplinesinsamtoolsheader) > 0:
             validityofsamtoolsfile, samtoolsinfo = parsereadgrouplines(samtoolsinfo, readgrouplinesinsamtoolsheader,
                                                                        rgidentifierinsamtoolsheader)
+            print("After parsing read group lines ", len(samtoolsinfo))
         if len(pggrouplinesinsamtoolsheader) > 0:
             validityofsamtoolsfile, samtoolsinfo = parsepggrouplines(samtoolsinfo, pggrouplinesinsamtoolsheader,
                                                                      pgidentifierinsamtoolsheader)
+            print("After parsing pg group lines ", len(samtoolsinfo))
         if len(commentsdict) > 0:
             samtoolsinfo.append(commentsdict)
-
+            print("After parsing comment dicts (no entries) ", len(samtoolsinfo))
         if len(sequencelinesinsamtoolsheader) > 0:
-            parseseqalignlines(samtoolsinfo, sequencelinesinsamtoolsfile,
+            validityofsamtoolsfile, samtoolsinfo = parseseqalignlines(samtoolsinfo, sequencelinesinsamtoolsfile,
                                chrlengths, min_depth, dnabases,
                                pileupnotation, qnamepattern, cigarpattern, seqpattern,
                                qualpattern)
 
+            print("After parsing sequence alignment records ", len(samtoolsinfo))
+
+        # Call variants
+        call_variants(samtoolsinfo.get("ALN"), min_depth)
     except Exception as exception:
         print(type(exception))  # the exception instance
         print(exception.args)  # arguments stored in .args

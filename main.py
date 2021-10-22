@@ -4,7 +4,7 @@
 # from typing import List
 
 import argparse
-from typing import Any
+from typing import Any, Dict
 
 import numpy as np
 
@@ -26,7 +26,7 @@ import samtoolspileupchecker.samtoolspileupchecker as smtools
 # A single character indicating the read base and the strand to which the read has been mapped:
 # Forward	Reverse	Meaning
 # . dot	, comma	Base matches the reference base
-# ACGTN	acgtn	Base is a mismatch to the reference base
+# Base is a mismatch to the reference base
 # >	<	Reference skip (due to CIGAR “N”) -> '>' on fwd strand and '<' on reverse strand
 # *	*/#	Deletion of the reference base (CIGAR “D”) -> * deletion on fwd strand and # on reverse strand
 # Deleted bases are shown as “*” on both strands unless --reverse-del is used,
@@ -80,22 +80,22 @@ def call_variants(pileupreads: list[str], min_depth: int) -> str:
         referencebase: str = None
         numberofreads: int = None
         readstrings: str = None
-        qname: str = None
-        flag: str = None
-        rname: str = None
-        pos: int = None
-        cigar: str = None
-        mapq: str = None
-        rnext: str = None
-        pnext: str = None
-        tlen: str = None
+        qname: str
+        flag: str
+        rname: str
+        pos: int
+        cigar: str
+        mapq: str
+        rnext: str
+        pnext: str
+        tlen: str
         SEQ: str
         QUAL: str
         readlengths: dict[Any, Any] = {}
-        readstrands = {}
-        referenceskip = {}
-        deletedbases = {}
-        readquality = {}
+        readstrands: dict[Any, Any] = {}
+        referenceskip: dict[Any, Any] = {}
+        deletedbases: dict[Any, Any] = {}
+        readquality: dict[Any, Any] = {}
         for stringofallreadsmappingtothatpositiononreference in pileupreads:
             chromosomenumber, positiononchromosome, referencebase, numberofreads, readstrings, qname, flag, rname, pos,
             cigar, mapq, rnext, pnext, tlen, SEQ, QUAL = stringofallreadsmappingtothatpositiononreference.split('\t')

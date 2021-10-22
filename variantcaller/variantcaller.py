@@ -1,6 +1,5 @@
 def checkforreferenceallelecall(uniquebasescalled: list[str]) -> bool:
     """
-
     :param uniquebasescalled:
     :return:
     """
