@@ -54,7 +54,7 @@ def referencegenomeparser(refgenomefilename: str, dnabasesfilename: str) -> tupl
             refgenomefilehandle.close()
 
             # reference is reference genome
-            # pattern is allowaed characters in reference genome file
+            # pattern is allowed characters in reference genome file
             if len(reference) > 0 and len(pattern) > 0:
                 return True, reference, pattern
             else:

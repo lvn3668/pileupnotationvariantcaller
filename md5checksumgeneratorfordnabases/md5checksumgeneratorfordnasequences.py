@@ -66,9 +66,7 @@ def checkIfValidMD5(md5: str, filename: str) -> bool:
     :type dictofmd5hashes: object
     """
     # Hardcode to return True
-    print("Inside check if valid md5")
     return True
-    print(filename)
     data = Path(filename).read_bytes()
     if md5 in data.decode():
         print("Inside true")

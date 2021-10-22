@@ -11,7 +11,6 @@ import numpy as np
 import md5checksumgeneratorfordnabases.md5checksumgeneratorfordnasequences as md5
 import pileupfilereader.pileupnotationreader as pileup
 import referencegenomecheck.referencegenomecheck as refgenome
-import variantcaller.variantcaller as vc
 import chromosomelengthreader.readassemblyinfo as chrlengthreader
 import samtoolspileupchecker.samtoolspileupchecker as smtools
 
@@ -48,8 +47,6 @@ import samtoolspileupchecker.samtoolspileupchecker as smtools
 # seq1 277 T 22  ....,,.,.,.C.,,,.,..G.  +7<;<<<<<<<&<=<<:;<<&<
 # seq1 278 G 23  ....,,.,.,...,,,.,....^k.   %38*<<;<7<<7<=<<<;<<<<<
 # seq1 279 C 23  A..T,,.,.,...,,,.,..... ;75&<<<<<<<<<=<<<9<<:<<
-
-
 # test_ref = 'TTTAGAGCGC'
 
 test_pileup = ['....,...,,,,.,...,',
@@ -63,117 +60,6 @@ test_pileup = ['....,...,,,,.,...,',
                '.cc',
                'aA.,,A.,...,a.,Aa...,',
                ]
-
-
-def call_variants(pileupreads: list[str], min_depth: int) -> str:
-    """
-    :type pileupreads: object
-    :param pileupreads:
-    :param min_depth:
-    :return:
-    """
-    # TODO: Make a variant call at each position on ref, using the pileupreads
-    try:
-        call_set: list[str] = []
-        chromosomenumber: str = None
-        positiononchromosome: int = None
-        referencebase: str = None
-        numberofreads: int = None
-        readstrings: str = None
-        qname: str
-        flag: str
-        rname: str
-        pos: int
-        cigar: str
-        mapq: str
-        rnext: str
-        pnext: str
-        tlen: str
-        SEQ: str
-        QUAL: str
-        readlengths: dict[Any, Any] = {}
-        readstrands: dict[Any, Any] = {}
-        referenceskip: dict[Any, Any] = {}
-        deletedbases: dict[Any, Any] = {}
-        readquality: dict[Any, Any] = {}
-        for stringofallreadsmappingtothatpositiononreference in pileupreads:
-            chromosomenumber, positiononchromosome, referencebase, numberofreads, readstrings, qname, flag, rname, pos,
-            cigar, mapq, rnext, pnext, tlen, SEQ, QUAL = stringofallreadsmappingtothatpositiononreference.split('\t')
-            if len(readstrings) > min_depth:
-                readnumber: int = 0
-                reads = np.ones(len(readstrings))
-                # readstrings
-                # after caret, check if strand is given or ascii encoded mapping quality
-                # if '+' isfollowed by number it is insertion of that many bases
-                #
-                while readnumber < len(readstrings):
-                    # reference match on fwd strand (0)
-                    if readstrings[readnumber] == ',':
-                        reads[chromosomenumber][positiononchromosome][readnumber] = 0
-                    # reference match on reverse strand (1)
-                    elif readstrings[readnumber] == '.':
-                        reads[chromosomenumber][positiononchromosome][readnumber] = 1
-                    # Mismatch on FWD strand (2)
-                    elif readstrings[readnumber] in ['A', 'T', 'G', 'C']:
-                        reads[chromosomenumber][positiononchromosome][readnumber] = 2
-                    elif readstrings[readnumber] in ['a', 't', 'g', 'c']:
-                        reads[chromosomenumber][positiononchromosome][readnumber] = 3
-                    # reference skip due to CIGAR string on forward strand
-                    elif readstrings[readnumber] == '>':
-                        referenceskip[chromosomenumber][positiononchromosome][readnumber] = 0
-                    # reference skip due to CIGAR string on reverse strand
-                    elif readstrings[readnumber] == '<':
-                        referenceskip[chromosomenumber][positiononchromosome][readnumber] = 1
-                    # read stops at this position
-                    # 1 based indexing
-                    # & , %33 (????)
-                    elif readstrings[readnumber] == '$':
-                        readlengths[chromosomenumber][positiononchromosome][readnumber] = positiononchromosome
-                        # deleted bases on fwd strand (also on reverse unless flag specified in samtools call)
-                    elif readstrings[readnumber] == '*':
-                        deletedbases[chromosomenumber][positiononchromosome][readnumber] = 0
-                    elif readstrings[readnumber] == '#':
-                        deletedbases[chromosomenumber][positiononchromosome][readnumber] = 1
-                    elif readstrings[readnumber] == '^':
-                        readstrands[chromosomenumber][positiononchromosome][readnumber] = 'start'
-                        readquality[chromosomenumber][positiononchromosome][readnumber] = ord(
-                            readstrings[readnumber + 1]) - 33
-                        # Move forward twice because start of read and its mapping quality has been parsed
-                        readnumber = readnumber + 1
-
-            readnumber = readnumber + 1
-            uniquebases, countsofuniquebases = np.unique(reads, return_counts=True)
-            frequencies = np.asarray((uniquebases, countsofuniquebases)).T
-
-            if vc.checkforreferenceallelecall(uniquebases):
-                call_set.append("ref")
-            elif vc.checkforaltallelecallinpileup(uniquebases):
-                call_set.append("alt")
-            elif vc.checkforalthomozygouscall(uniquebases, frequencies):
-                call_set.append("[ACGT]hom")
-            elif vc.checkifATGCHeterozygous(uniquebases, frequencies):
-                call_set.append("[ACGT]het")
-            elif vc.checkifATGClow(uniquebases, frequencies):
-                call_set.append("[ACGT]low")
-            else:
-                call_set.append("nocall")
-        return call_set
-    except Exception as exception:
-        print(type(exception))  # the exception instance
-        print(exception.args)  # arguments stored in .args
-        print(exception)  # __str__ allows args to be printed directly,
-        x, y = exception.args  # unpack args
-        print('x =', x)
-        print('y =', y)
-
-    # def print_hi(name):
-    """
-
-#    :param name:
-    """
-    # Use a breakpoint in the code line below to debug your script.
-#   print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -202,7 +88,6 @@ if __name__ == '__main__':
         # Keep this line:
         (validityofassemblymetadatafile, organism, assembly, chrLengthshash) = chrlengthreader.readchromosomelengths(
             ''.join(args.assemblymetadata))
-
         if validityofassemblymetadatafile:
             dnabases: list[str]
             validityofreferencefile, reference, dnabases = refgenome.referencegenomeparser(''.join(args.referencefastafile),
@@ -221,7 +106,7 @@ if __name__ == '__main__':
                                                     args.minreaddepth,
                                                     chrLengthshash, ''.join(dnabases),
                             pileupnotationpattern, "C:\\Users\\visu4\\PycharmProjects\\variantcallingfrompileup\\data\\md5checksum.txt")
-        # call_set = call_variants(test_pileup, reference, 5)
+
         # TO DO: print the ref positions (1-10), and the variant call at each position
         # (Bonus: can you use list comprehension to print the results with one line of code?)
         # print(call_set)
