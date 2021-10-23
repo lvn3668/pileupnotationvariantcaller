@@ -271,8 +271,7 @@ def parseseqalignlines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: 
         readnumber = readnumber + 1
         uniquebases, countsofuniquebases = np.unique(reads, return_counts=True)
         frequencies = np.asarray((uniquebases, countsofuniquebases)).T
-        print(frequencies, " before printing call sets ")
-
+        #print(frequencies, " before printing call sets ")
         if vc.checkforreferenceallelecall(uniquebases):
             call_set.append("ref")
         elif vc.checkforaltallelecallinpileup(uniquebases):
