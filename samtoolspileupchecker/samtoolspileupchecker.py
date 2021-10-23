@@ -271,7 +271,6 @@ def parseseqalignlines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: 
         readnumber = readnumber + 1
         uniquebases, countsofuniquebases = np.unique(reads, return_counts=True)
         frequencies = np.asarray((uniquebases, countsofuniquebases)).T
-        #print(frequencies, " before printing call sets ")
         if vc.checkforreferenceallelecall(uniquebases):
             call_set.append("ref")
         elif vc.checkforaltallelecallinpileup(uniquebases):
@@ -285,24 +284,20 @@ def parseseqalignlines(samtoolsinfo: list[dict], sequencelinesinsamtoolsheader: 
         else:
             call_set.append("nocall")
 
-        #or (
-        #        len(set(''.join(referencebase.lower().split())) - set(''.join(dnabases.lower().split()))) > 0) ):
+        #:
 
-        #if (int(numberofreads) < 0) or (int(min_depth[0]) < 0) or int(numberofreads) <= int(
-        #    min_depth[0]):
-        # or int(numberofreads) != len(line)
-
-        #if qname is None or not qnamepattern.match(qname) or flag is None or flag not in [0,
-        #                                                                                  2 ^ 16 - 1] or rname is None or \
-        #        leftmostmappingpos is None or leftmostmappingpos not in [0, 2 ^ 31 - 1] or mapq is None or mapq not in [
-        #    0, 2 ^ 8 - 1] \
-        #        or cigar is None or not cigarpattern.match(cigar) or rnext is None or pnext is None or pnext not in [0,
-        #                                                                                                             2 ^ 31 - 1] \
-        #        or tlen is None or tlen not in [-2 ^ 31 + 1, 2 ^ 31 - 1] or SEQ is None or not seqpattern.match(SEQ) \
-        #        or QUAL is None or ord(QUAL) - 33 < 33 or not qualpattern.match(QUAL) or ord(QUAL) - 33 == 255:
-        #    print("Seq Align fields invalid ")
-        #else:
-        #    seqaligndict["ALN"].append(line)
+        if (int(numberofreads) < 0) or (int(min_depth[0]) < 0) or int(numberofreads) <= int(
+            min_depth[0]) or int(numberofreads) != len(line) or (
+                len(set(''.join(referencebase.lower().split())) - set(''.join(dnabases.lower().split()))) > 0) \
+            or qname is None or not qnamepattern.match(qname) or flag is None or flag not in [0,
+                                                                                          2 ^ 16 - 1] or rname is None or \
+                leftmostmappingpos is None or leftmostmappingpos not in [0, 2 ^ 31 - 1] or mapq is None or mapq not in [
+            0, 2 ^ 8 - 1] or cigar is None or not cigarpattern.match(cigar) or rnext is None or pnext is None or pnext not in [0,
+            2 ^ 31 - 1] or tlen is None or tlen not in [-2 ^ 31 + 1, 2 ^ 31 - 1] or SEQ is None or not seqpattern.match(SEQ) \
+        or QUAL is None or ord(QUAL) - 33 < 33 or not qualpattern.match(QUAL) or ord(QUAL) - 33 == 255:
+            print("Seq Align fields invalid ")
+        else:
+            seqaligndict["ALN"].append(line)
     print(call_set)
     samtoolsinfo.append(seqaligndict)
     return True, samtoolsinfo
